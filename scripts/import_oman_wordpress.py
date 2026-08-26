@@ -297,33 +297,23 @@ def rewrite_content(html: str, image_url: str) -> str:
 def make_cover_jpeg(title: str) -> bytes:
     from PIL import Image, ImageDraw, ImageFont
 
-    try:
-        import arabic_reshaper
-        from bidi.algorithm import get_display
-
-        def rtl(s: str) -> str:
-            return get_display(arabic_reshaper.reshape(s))
-    except Exception:
-        def rtl(s: str) -> str:
-            return s
-
     w, h = 1280, 720
     img = Image.new("RGB", (w, h), "#0A1F4E")
     draw = ImageDraw.Draw(img)
     for i in range(h):
         mix = i / h
-        r = int(10 + 20 * mix)
-        g = int(31 + 40 * mix)
-        b = int(78 + 60 * mix)
-        draw.line([(0, i), (w, i)], fill=(r, g, b))
-    draw.rectangle([48, 48, w - 48, h - 48], outline="#4FA8FF", width=4)
-    font_path = "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Bold.ttf"
-    brand = ImageFont.truetype(font_path, 42)
-    body = ImageFont.truetype(font_path, 54)
-    draw.text((w // 2, 220), rtl("ركن التطور — عُمان"), font=brand, fill="#F5C542", anchor="mm")
-    draw.text((w // 2, 370), rtl(title), font=body, fill="white", anchor="mm")
+        draw.line([(0, i), (w, i)], fill=(10 + int(18 * mix), 31 + int(50 * mix), 78 + int(70 * mix)))
+    draw.rounded_rectangle([40, 40, w - 40, h - 40], radius=28, outline="#4FA8FF", width=5)
+    draw.ellipse([980, -120, 1420, 320], outline=(79, 168, 255, 40), width=18)
+    latin = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
+    big = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 56)
+    small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
+    draw.text((w // 2, 230), "RUKN ELTATAWER", font=big, fill="#F5C542", anchor="mm")
+    draw.text((w // 2, 310), "OMAN  |  HOME SERVICES", font=small, fill="#9EC9FF", anchor="mm")
+    label = title.replace("-", " ").strip().title() if title.isascii() else "Professional Cleaning"
+    draw.text((w // 2, 430), label[:48], font=latin, fill="white", anchor="mm")
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=86)
+    img.save(buf, format="JPEG", quality=88)
     return buf.getvalue()
 
 
@@ -507,7 +497,7 @@ def import_all(csv_path: Path, status: str, delay: float) -> None:
                 type_key = slug[: -len(suffix)]
                 break
         if type_key not in cover_cache:
-            blob = make_cover_jpeg(title.split(" ب")[0] if " ب" in title else title)
+            blob = make_cover_jpeg(type_key)
             mid, src = upload_jpeg(wp, f"{type_key}.jpg", blob, title)
             cover_cache[type_key] = (mid, src)
         media_id, image_url = cover_cache[type_key]
