@@ -25,6 +25,25 @@ python3 scripts/import_oman_wordpress.py --csv rukn-eltatawer-oman-FULL.csv.oplu
 
 السكربت يعيد استخدام العناصر الموجودة حسب الـ slug، فيمكن تشغيله مرة ثانية بأمان.
 
+## تصحيح المحتوى وSEO (عربي + إنجليزي)
+
+بعد الاستيراد:
+
+```bash
+export WP_USER='mahmoud'
+export WP_APP_PASSWORD='xxxx xxxx xxxx xxxx xxxx xxxx'
+export WP_ADMIN_PASSWORD='…'   # لرفع إضافة rukn-oman-seo فقط
+python3 scripts/seo_fix_oman.py
+```
+
+السكربت يقوم بـ:
+
+- رفع وتفعيل إضافة `plugins/rukn-oman-seo` (عناوين فريدة، canonical، hreflang، schema، `robots.txt`، `sitemap.xml`، ومسار `/en/`)
+- حقن فقرة محلية عُمانية لكل مقالة مدينة حتى لا تبقى نسخاً متطابقة
+- نسخة إنجليزية لكل مقالة تنظيف عبر `/om/en/{slug}/`
+- ضبط اسم الموقع والمنطقة الزمنية `Asia/Muscat` واسم المؤلف
+- تعطيل Polylang غير المكتمل حتى لا يكرر الصفحة الرئيسية على `/en/`
+
 ## ما تم ضبطه على الموقع الحي
 
 - أرقام الاتصال/واتساب في إعدادات القالب: `+971586634710` / `971586634710`
