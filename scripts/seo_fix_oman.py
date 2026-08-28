@@ -232,7 +232,11 @@ def upload_plugin(admin: Admin, zip_path: Path) -> None:
     if code != 200:
         raise SystemExit(f"plugin-install page {code}")
     nonce = admin.get_nonce(html)
-    fields = {"_wpnonce": nonce, "_wp_http_referer": "/om/wp-admin/plugin-install.php?tab=upload"}
+    fields = {
+        "_wpnonce": nonce,
+        "_wp_http_referer": "/om/wp-admin/plugin-install.php?tab=upload",
+        "install-plugin-submit": "Install Now",
+    }
     if 'name="overwrite"' in html or "overwrite" in html:
         fields["overwrite"] = "update-plugin"
     payload, ctype = encode_multipart(
@@ -431,8 +435,13 @@ def site_settings(wp: WP) -> None:
 
 
 def deactivate_conflicting_plugins(wp: WP) -> None:
-    code, data, _ = wp.post("/wp/v2/plugins/polylang/polylang", {"status": "inactive"})
-    print("polylang", code, data.get("status") if isinstance(data, dict) else data)
+    for slug in (
+        "polylang/polylang",
+        "code-snippets/code-snippets",
+        "insert-headers-and-footers/ihaf",
+    ):
+        code, data, _ = wp.post(f"/wp/v2/plugins/{slug}", {"status": "inactive"})
+        print(slug, code, data.get("status") if isinstance(data, dict) else data)
 
 
 def delete_sample(wp: WP) -> None:

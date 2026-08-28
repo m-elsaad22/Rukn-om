@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 1.3.0
+ * Version: 1.3.3
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -22,13 +22,21 @@ final class Rukn_Oman_SEO
 
     public static function init()
     {
+        static $done = false;
+        if ($done) {
+            return;
+        }
+        $done = true;
         self::serve_static_routes();
 
         add_action('init', [__CLASS__, 'rewrites'], 20);
         add_action('init', [__CLASS__, 'maybe_flush'], 21);
         add_action('init', [__CLASS__, 'register_meta']);
-        add_action('template_redirect', [__CLASS__, 'early_routes'], 0);
+        add_filter('request', [__CLASS__, 'filter_request']);
+        add_action('template_redirect', [__CLASS__, 'early_routes'], -1);
         add_action('template_redirect', [__CLASS__, 'buffer_start'], 1);
+        add_filter('the_title', [__CLASS__, 'english_title'], 10, 2);
+        add_filter('the_content', [__CLASS__, 'english_content'], 7);
         add_filter('the_content', [__CLASS__, 'single_h1'], 8);
         add_filter('get_the_terms', [__CLASS__, 'hide_uncategorized'], 10, 3);
         add_filter('the_author', [__CLASS__, 'author_name']);
@@ -59,10 +67,10 @@ final class Rukn_Oman_SEO
 
     public static function maybe_flush()
     {
-        if (get_option('rukn_oman_seo_flush') !== '1.3.0') {
+        if (get_option('rukn_oman_seo_flush') !== '1.3.3') {
             self::rewrites();
-            flush_rewrite_rules(false);
-            update_option('rukn_oman_seo_flush', '1.3.0');
+            flush_rewrite_rules(true);
+            update_option('rukn_oman_seo_flush', '1.3.3');
             self::write_public_files();
         }
     }
@@ -162,15 +170,94 @@ final class Rukn_Oman_SEO
         if (preg_match('#^/(sitemap\.xml|sitemap_index\.xml|wp-sitemap\.xml)/?$#', $path)) {
             self::send_sitemap();
         }
-        if (preg_match('#^/en/?$#', $path)) {
-            self::render_english_home();
-        }
-        if (preg_match('#^/en/([a-z0-9\-]+)/?$#', $path, $m)) {
-            self::render_english_post($m[1]);
+        if (is_page('en-home') && !self::is_english_request()) {
+            wp_safe_redirect(home_url('/en/'), 301);
+            exit;
         }
         if (preg_match('#^/services/([a-z0-9\-]+)/?$#', $path, $m)) {
-            self::render_service($m[1]);
+            self::force_service_query($m[1]);
         }
+    }
+
+    public static function force_service_query($slug)
+    {
+        global $wp_query, $wp;
+        if ($wp_query instanceof WP_Query && $wp_query->is_singular && isset($wp_query->queried_object->post_type) && $wp_query->queried_object->post_type === 'services') {
+            return;
+        }
+        $found = get_posts([
+            'name' => $slug,
+            'post_type' => 'services',
+            'post_status' => 'publish',
+            'numberposts' => 1,
+        ]);
+        if (!$found) {
+            return;
+        }
+        $post = $found[0];
+        $wp_query = new WP_Query([
+            'p' => $post->ID,
+            'post_type' => 'services',
+        ]);
+        if (!$wp_query->have_posts()) {
+            $wp_query->posts = [$post];
+            $wp_query->post_count = 1;
+            $wp_query->queried_object = $post;
+            $wp_query->queried_object_id = $post->ID;
+        }
+        $wp_query->is_singular = true;
+        $wp_query->is_single = true;
+        $wp_query->is_404 = false;
+        $wp_query->is_home = false;
+        $wp_query->is_front_page = false;
+        $wp_query->is_page = false;
+        status_header(200);
+        if (isset($wp) && is_object($wp)) {
+            $wp->query_vars['error'] = '';
+            $wp->query_vars['post_type'] = 'services';
+            $wp->query_vars['name'] = $slug;
+        }
+    }
+
+    public static function filter_request($vars)
+    {
+        $path = rtrim(self::request_path(), '/') . '/';
+        if (preg_match('#^/en/?$#', $path)) {
+            return ['pagename' => 'en-home'];
+        }
+        if (preg_match('#^/en/([a-z0-9\-]+)/?$#', $path, $m)) {
+            return ['name' => $m[1], 'post_type' => 'post'];
+        }
+        if (preg_match('#^/services/([a-z0-9\-]+)/?$#', $path, $m)) {
+            return [
+                'post_type' => 'services',
+                'name' => $m[1],
+                'services' => $m[1],
+            ];
+        }
+        return $vars;
+    }
+
+    public static function english_title($title, $post_id = 0)
+    {
+        if (!self::is_english_request() || !$post_id) {
+            return $title;
+        }
+        $en = get_post_meta((int) $post_id, self::EN_TITLE, true);
+        return $en ?: $title;
+    }
+
+    public static function english_content($content)
+    {
+        if (!self::is_english_request() || !is_singular()) {
+            return $content;
+        }
+        $post = get_queried_object();
+        if (!$post instanceof WP_Post) {
+            return $content;
+        }
+        $en = get_post_meta($post->ID, self::EN_CONTENT, true);
+        return $en ?: $content;
     }
 
     public static function send_robots()
@@ -195,14 +282,14 @@ final class Rukn_Oman_SEO
         $urls[] = [home_url('/en/'), '0.9', 'daily', gmdate('c')];
 
         $posts = get_posts([
-            'post_type' => ['post', 'page', 'services'],
+            'post_type' => ['post', 'page'],
             'post_status' => 'publish',
             'numberposts' => 500,
             'orderby' => 'modified',
             'order' => 'DESC',
         ]);
         foreach ($posts as $post) {
-            if (in_array($post->post_name, ['sample-page', 'hello-world'], true)) {
+            if (in_array($post->post_name, ['sample-page', 'hello-world', 'en-home'], true)) {
                 continue;
             }
             $lang = get_post_meta($post->ID, self::LANG_META, true);
@@ -263,8 +350,8 @@ final class Rukn_Oman_SEO
         }
         $robots = "User-agent: *\nAllow: /\nDisallow: /om/wp-admin/\nAllow: /om/wp-admin/admin-ajax.php\nDisallow: /wp-admin/\nSitemap: " . home_url('/sitemap.xml') . "\n";
         @file_put_contents(ABSPATH . 'robots.txt', $robots);
-        if (did_action('init') || doing_action('init')) {
-            @file_put_contents(ABSPATH . 'sitemap.xml', self::sitemap_xml());
+        if (is_file(ABSPATH . 'sitemap.xml')) {
+            @unlink(ABSPATH . 'sitemap.xml');
         }
     }
 
@@ -494,14 +581,21 @@ final class Rukn_Oman_SEO
         $extra .= self::schema_json($seo);
         $html = preg_replace('/<title>.*<\/title>/is', '$0' . $extra, $html, 1);
 
+        $post = get_queried_object();
+        if ($seo['lang'] === 'en-OM' && $post instanceof WP_Post) {
+            $en_h1 = get_post_meta($post->ID, self::EN_TITLE, true) ?: $post->post_title;
+            if (is_page('en-home') || self::request_path() === '/en/' || self::request_path() === '/en') {
+                $en_h1 = $post->post_title;
+            }
+            $html = preg_replace('/<h1(\b[^>]*)>.*?<\/h1>/is', '<h1$1>' . esc_html($en_h1) . '</h1>', $html, 1);
+        }
+
         $html = str_replace('اختر الإمارة', 'اختر المدينة', $html);
         $html = str_replace('خريطة الإمارات', 'خريطة مدن عُمان', $html);
         $html = str_replace('الإمارات العربية المتحدة', 'سلطنة عُمان', $html);
         $html = preg_replace('/\bUncategorized\b/u', 'خدمات التنظيف', $html);
         $html = preg_replace('/غير مصنف/u', 'خدمات التنظيف', $html);
-        $html = str_replace('MAHMOUD ȜLY', 'فريق ركن التطور', $html);
-        $html = str_replace('MAHMOUD ɌLY', 'فريق ركن التطور', $html);
-        $html = str_replace('MAHMOUD ALY', 'فريق ركن التطور', $html);
+        $html = preg_replace('/MAHMOUD[^<]{0,24}/u', 'فريق ركن التطور', $html);
         $html = str_replace('&raquo; ', '', $html);
         $html = str_replace('» ', '', $html);
         return $html;
