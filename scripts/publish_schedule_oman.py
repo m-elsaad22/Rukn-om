@@ -1,0 +1,412 @@
+#!/usr/bin/env python3
+"""Finish WP/theme/Rank Math setup, publish the top draft, schedule the rest hourly.
+
+Credentials from the environment (never committed):
+  WP_USER, WP_APP_PASSWORD, WP_ADMIN_PASSWORD, WP_BASE
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from oman_copy import CITIES  # noqa: E402
+from seo_fix_oman import WP, Admin, strip_uae  # noqa: E402
+
+PHONE = os.environ.get("WP_PHONE", "+971586634710")
+WHATSAPP = os.environ.get("WP_WHATSAPP", "971586634710")
+MUSCAT = timezone(timedelta(hours=4))
+
+# Search-demand priority for Oman (lower index = publish sooner).
+PRIORITY = [
+    "water-leak-detection",
+    "water-pipe-leak-detection",
+    "ac-leak-detection",
+    "gas-leak-detection",
+    "split-ac-maintenance",
+    "central-ac-maintenance",
+    "split-ac-installation",
+    "ac-tech",
+    "plumbing-fault-repair",
+    "home-plumber",
+    "home-plumber-elec",
+    "drain-unclogging",
+    "drainage-pipe-maintenance",
+    "septic-tank-emptying",
+    "water-heater-installation",
+    "water-heater-maintenance",
+    "water-pump-maintenance",
+    "water-pumps",
+    "plumbing-maintenance",
+    "sanitary-fixtures-installation",
+    "roof-insulation",
+    "waterproofing",
+    "thermal-insulation",
+    "humidity-treatment",
+    "bathroom-insulation",
+    "kitchen-insulation",
+    "tank-insulation",
+    "tank-lining-maintenance",
+    "soundproofing",
+    "24h-emergency-electrician",
+    "electrical-fault-detection",
+    "electrical-maintenance",
+    "home-electrician",
+    "home-electrician-elec",
+    "electric-panel-maintenance",
+    "new-electrical-wiring",
+    "general-maintenance",
+    "building-maintenance",
+    "deep-cleaning",
+    "duct-cleaning",
+    "chimney-cleaning",
+    "stone-facade-cleaning",
+    "garage-cleaning",
+    "cockroach-control",
+    "termite-control",
+    "bed-bug-control",
+    "rodent-control",
+    "ant-control",
+    "mosquito-fly-control",
+    "crawling-pest-control",
+    "flying-pest-control",
+    "bathroom-renovation",
+    "kitchen-renovation",
+    "old-house-renovation",
+    "building-renovation",
+    "villa-inspection",
+    "crack-repair",
+    "villa-painting",
+    "apartment-painting",
+    "interior-painting",
+    "exterior-painting",
+    "exterior-facade-painting",
+    "solar-ac-installation",
+    "solar-water-heaters",
+    "solar-systems-installation",
+    "cctv-tech",
+    "cctv-maintenance",
+    "water-filters",
+    "ro-plants",
+]
+
+CITY_RANK = {slug: i for i, slug in enumerate(["muscat", "salalah", "sohar", "nizwa", "sur", "rustaq", "ibri", "al-buraimi"])}
+PRIO_RANK = {slug: i for i, slug in enumerate(PRIORITY)}
+
+
+def split_slug(slug: str) -> tuple[str, str]:
+    for city in sorted(CITIES, key=len, reverse=True):
+        if slug.endswith("-" + city):
+            return slug[: -(len(city) + 1)], city
+    return slug, "muscat"
+
+
+def score(slug: str) -> tuple[int, int, str]:
+    service, city = split_slug(slug)
+    return (PRIO_RANK.get(service, 500), CITY_RANK.get(city, 50), slug)
+
+
+def prepare_content(raw: str, title: str, slug: str) -> tuple[str, str, str]:
+    service, city = split_slug(slug)
+    html = strip_uae(raw or "")
+    html = html.replace("{PHONE_RUKN_OMAN}", PHONE)
+    html = html.replace("{WHATSAPP_RUKN_OMAN}", WHATSAPP)
+    html = re.sub(r"<h1(\b[^>]*)>", r"<h2\1>", html, count=1, flags=re.I)
+    html = re.sub(r"</h1>", "</h2>", html, count=1, flags=re.I)
+    html = re.sub(r"<!--rukn-local-start-->.*?<!--rukn-local-end-->", "", html, flags=re.S)
+    city_info = CITIES.get(city, CITIES["muscat"])
+    section = f"""<!--rukn-local-start-->
+<section class="rukn-oman-local">
+<h2>{title} في {city_info["ar"]} — {city_info["gov_ar"]}</h2>
+<p>ركن التطور ينفّذ هذه الخدمة {city_info["prep"]} داخل {city_info["gov_ar"]}. {city_info["note_ar"]}. طبيعة المكان: {city_info["climate_ar"]}. المباني الشائعة: {city_info["stock_ar"]}.</p>
+<p>التغطية الميدانية: {city_info["areas_ar"]}. المعاينة قبل أي سعر، والتسعير بالريال العُماني وليس بعملة دولة أخرى.</p>
+</section>
+<!--rukn-local-end-->"""
+    idx = html.rfind("</section>")
+    html = html[:idx] + section + html[idx:] if idx != -1 else html + section
+    desc = (
+        f"{title} في {city_info['ar']} داخل {city_info['gov_ar']}. "
+        f"معاينة ميدانية وسعر بالريال العُماني. تغطية: {city_info['areas_ar'][:60]}."
+    )[:160]
+    seo_title = f"{title} | ركن التطور عُمان"
+    return html, seo_title, desc
+
+
+def list_drafts(wp: WP) -> list[dict]:
+    items = []
+    page = 1
+    while True:
+        code, data, hdrs = wp.get(
+            "/wp/v2/posts",
+            status="draft",
+            per_page=100,
+            page=page,
+            context="edit",
+            _fields="id,slug,title,content,featured_media",
+        )
+        if code != 200 or not isinstance(data, list) or not data:
+            break
+        items.extend(data)
+        pages = int(hdrs.get("X-WP-TotalPages") or hdrs.get("x-wp-totalpages") or 1)
+        if page >= pages:
+            break
+        page += 1
+    return items
+
+
+def cover_id(wp: WP) -> int:
+    code, data, _ = wp.get("/wp/v2/posts", slug="home-cleaning-muscat", per_page=1, context="edit")
+    if code == 200 and data:
+        mid = int(data[0].get("featured_media") or 0)
+        if mid:
+            return mid
+    code, media, _ = wp.get("/wp/v2/media", per_page=1)
+    if code == 200 and media:
+        return int(media[0]["id"])
+    return 0
+
+
+RANKMATH_SNIPPET = r"""
+if (!function_exists('rukn_rankmath_oman_setup')) {
+    function rukn_rankmath_oman_setup() {
+        add_filter('rank_math/registration/skip', '__return_true');
+        if (get_option('rukn_rankmath_setup') === '1.1') {
+            return;
+        }
+        update_option('rank_math_wizard_completed', true);
+        $titles = get_option('rank-math-options-titles', array());
+        if (!is_array($titles)) { $titles = array(); }
+        $titles['homepage_title'] = 'ركن التطور عُمان | تنظيف وصيانة وكشف تسربات في مسقط وصلالة وكل مدن السلطنة';
+        $titles['homepage_description'] = 'شركة خدمات منزلية في سلطنة عُمان: تنظيف، كشف تسربات، عزل، صيانة وتكييف. عرض سعر بالريال العُماني بعد المعاينة.';
+        $titles['pt_post_title'] = '%title% %sep% ركن التطور عُمان';
+        $titles['pt_post_description'] = '%excerpt%';
+        $titles['pt_page_title'] = '%title% %sep% ركن التطور عُمان';
+        $titles['title_separator'] = '-';
+        $titles['disable_author_archives'] = 'on';
+        $titles['disable_date_archives'] = 'on';
+        $titles['noindex_empty_taxonomies'] = 'on';
+        $titles['noindex_search'] = 'on';
+        update_option('rank-math-options-titles', $titles);
+        $sm = get_option('rank-math-options-sitemap', array());
+        if (!is_array($sm)) { $sm = array(); }
+        $sm['pt_post_sitemap'] = 'on';
+        $sm['pt_page_sitemap'] = 'on';
+        $sm['authors_sitemap'] = 'off';
+        update_option('rank-math-options-sitemap', $sm);
+        $gen = get_option('rank-math-options-general', array());
+        if (!is_array($gen)) { $gen = array(); }
+        $gen['attachment_redirect_urls'] = 'on';
+        $gen['new_window_external_links'] = 'on';
+        update_option('rank-math-options-general', $gen);
+        update_option('rukn_rankmath_setup', '1.1');
+    }
+    add_action('plugins_loaded', 'rukn_rankmath_oman_setup', 20);
+    if (did_action('plugins_loaded')) { rukn_rankmath_oman_setup(); }
+}
+""".strip()
+
+
+def upsert_snippet(wp: WP) -> None:
+    code, data, _ = wp.get("/code-snippets/v1/snippets", per_page=50)
+    found = None
+    if code == 200 and isinstance(data, list):
+        for item in data:
+            if item.get("name") == "Rukn Rank Math Oman setup":
+                found = item
+                break
+    payload = {
+        "name": "Rukn Rank Math Oman setup",
+        "desc": "Skip Rank Math wizard and set Oman titles/sitemap options",
+        "code": RANKMATH_SNIPPET,
+        "scope": "global",
+        "active": True,
+        "priority": 5,
+    }
+    if found:
+        code, data, _ = wp.request("PUT", f"/code-snippets/v1/snippets/{found['id']}", data=payload)
+        print("rankmath snippet update", code, data.get("active") if isinstance(data, dict) else data)
+    else:
+        code, data, _ = wp.post("/code-snippets/v1/snippets", payload)
+        print("rankmath snippet create", code, data.get("id") if isinstance(data, dict) else data)
+
+
+def fix_theme_schema(admin: Admin) -> None:
+    url = admin.base + "/wp-admin/admin.php?page=yts-schema"
+    code, body, _, _ = admin.open(url)
+    html = body.decode("utf-8", "replace")
+    fields = {}
+    for m in re.finditer(r"<input([^>]+)>", html, re.I):
+        tag = m.group(1)
+        name_m = re.search(r'name="([^"]+)"', tag)
+        val_m = re.search(r'value="([^"]*)"', tag)
+        typ_m = re.search(r'type="([^"]+)"', tag)
+        if not name_m:
+            continue
+        name = name_m.group(1)
+        typ = (typ_m.group(1) if typ_m else "text").lower()
+        if typ in {"checkbox", "radio"} and "checked" not in tag.lower():
+            continue
+        fields[name] = val_m.group(1) if val_m else "on"
+    updates = {
+        "sitename__schema": "ركن التطور عُمان",
+        "YourColor_Schema_business[Business_Name]": "ركن التطور عُمان",
+        "YourColor_Schema_business[Street_Address]": "مسقط، سلطنة عُمان",
+        "YourColor_Schema_business[Country]": "OM",
+        "YourColor_Schema_business[City]": "مسقط",
+        "YourColor_Schema_business[State]": "محافظة مسقط",
+        "YourColor_Schema_business[telephone]": PHONE,
+        "YourColor_Schema_business[Price_Range]": "OMR",
+        "YourColor_Schema_business[openingHours]": "Sa-Th 08:00-21:00",
+        "YourColor_Schema_business[Service_Offered_Name]": "تنظيف، كشف تسربات، عزل، صيانة، سباكة، تكييف",
+        "YourColor_Service[addressLocality]": "مسقط",
+        "YourColor_Service[telephone]": PHONE,
+        "YourColor_Service[addressCountry]": "OM",
+        "YourColor_Service[addressRegion]": "سلطنة عُمان",
+    }
+    # Unhide LocalBusiness schema.
+    fields.pop("YourColor_Schema_business[hide_schema_business]", None)
+    fields.pop("hide_schema_business", None)
+    fields.update(updates)
+    nonce = re.search(r'name="_wpnonce" value="([^"]+)"', html)
+    if nonce:
+        fields["_wpnonce"] = nonce.group(1)
+    payload = urllib_encode(fields)
+    code, body, _, final = admin.open(
+        url,
+        data=payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    print("theme schema save", code, final[-40:])
+
+
+def urllib_encode(fields: dict) -> bytes:
+    import urllib.parse
+
+    return urllib.parse.urlencode(fields, doseq=True).encode()
+
+
+def publish_privacy(wp: WP) -> None:
+    code, data, _ = wp.get("/wp/v2/pages", slug="privacy-policy", status="any", context="edit")
+    html = """
+<p>توضح هذه الصفحة كيف يتعامل موقع ركن التطور عُمان مع بيانات التواصل التي تصلنا عبر النموذج أو واتساب أو الاتصال.</p>
+<h2>ما نجمعه</h2>
+<p>الاسم، رقم الهاتف، المدينة، ووصف الخدمة المطلوبة لتنسيق المعاينة وتقديم عرض سعر بالريال العُماني.</p>
+<h2>كيف نستخدمها</h2>
+<p>للتواصل بشأن طلبك فقط. لا نبيع بيانات العملاء ولا نرسلها لجهات تسويق خارج سلطنة عُمان.</p>
+<h2>الاحتفاظ</h2>
+<p>نحتفظ ببيانات الطلب أثناء تنفيذ الخدمة والمتابعة، ثم نحذف ما لم يعد لازماً للضمان أو المحاسبة.</p>
+<h2>التواصل</h2>
+<p>للاستفسار عن البيانات: واتساب أو اتصال على الرقم الظاهر في الموقع.</p>
+""".strip()
+    payload = {
+        "title": "سياسة الخصوصية",
+        "status": "publish",
+        "content": html,
+        "slug": "privacy-policy",
+        "excerpt": "كيف يتعامل ركن التطور عُمان مع بيانات طلبات الخدمة في سلطنة عُمان.",
+    }
+    if code == 200 and data:
+        pid = data[0]["id"]
+        code, out, _ = wp.post(f"/wp/v2/pages/{pid}", payload)
+        print("privacy update", code, out.get("link"))
+    else:
+        code, out, _ = wp.post("/wp/v2/pages", payload)
+        print("privacy create", code, out.get("link") if isinstance(out, dict) else out)
+
+
+def schedule_drafts(wp: WP) -> None:
+    drafts = list_drafts(wp)
+    print("drafts", len(drafts))
+    drafts.sort(key=lambda d: score(d.get("slug") or ""))
+    media = cover_id(wp)
+    now = datetime.now(MUSCAT).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    published = scheduled = failed = 0
+    first = True
+    for i, post in enumerate(drafts):
+        slug = post.get("slug") or ""
+        title = (post.get("title") or {}).get("raw") or slug
+        raw = (post.get("content") or {}).get("raw") or ""
+        html, seo_title, desc = prepare_content(raw, title, slug)
+        payload = {
+            "content": html,
+            "excerpt": desc,
+            "featured_media": media or post.get("featured_media") or 0,
+            "meta": {
+                "rank_math_title": seo_title,
+                "rank_math_description": desc,
+                "_rukn_lang": "ar",
+                "_rukn_pair_slug": slug,
+            },
+        }
+        if first:
+            payload["status"] = "publish"
+            payload["date"] = datetime.now(MUSCAT).strftime("%Y-%m-%dT%H:%M:%S")
+        else:
+            when = now + timedelta(hours=i - 1)
+            payload["status"] = "future"
+            payload["date"] = when.strftime("%Y-%m-%dT%H:%M:%S")
+        code, data, _ = wp.post(f"/wp/v2/posts/{post['id']}", payload)
+        if code in (200, 201):
+            if first:
+                published += 1
+                print("PUBLISH NOW", slug, data.get("link"), data.get("status"))
+                first = False
+            else:
+                scheduled += 1
+                if scheduled <= 5 or scheduled % 100 == 0:
+                    print(f"SCHEDULE {scheduled} {payload['date']} {slug} {data.get('status')}")
+        else:
+            failed += 1
+            print("FAIL", slug, code, data)
+        time.sleep(0.08)
+    print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts)}, ensure_ascii=False))
+
+
+def main() -> None:
+    user = os.environ.get("WP_USER")
+    app = os.environ.get("WP_APP_PASSWORD")
+    admin_pw = os.environ.get("WP_ADMIN_PASSWORD")
+    if not user or not app:
+        raise SystemExit("Set WP_USER and WP_APP_PASSWORD")
+    wp = WP(os.environ.get("WP_BASE", "https://rukn-eltatawer.com/om"), user, app)
+    code, me, _ = wp.get("/wp/v2/users/me", context="edit")
+    if code != 200:
+        raise SystemExit(f"auth failed {code}: {me}")
+    print("auth", me.get("slug"))
+    wp.post(
+        "/wp/v2/settings",
+        {
+            "title": "ركن التطور عُمان",
+            "description": "خدمات منزلية متكاملة في سلطنة عُمان: تنظيف، كشف تسربات، عزل، صيانة وتكييف في مسقط وصلالة وباقي المدن.",
+            "timezone": "Asia/Muscat",
+            "default_comment_status": "closed",
+            "default_ping_status": "closed",
+        },
+    )
+    upsert_snippet(wp)
+    publish_privacy(wp)
+    if admin_pw:
+        admin = Admin(os.environ.get("WP_BASE", "https://rukn-eltatawer.com/om"), user, admin_pw)
+        admin.login()
+        try:
+            fix_theme_schema(admin)
+        except Exception as exc:
+            print("schema error", exc)
+        # Confirm Rank Math dashboard after skip filter.
+        code, body, _, final = admin.open(admin.base + "/wp-admin/admin.php?page=rank-math")
+        print("rank-math dashboard", code, final[-50:])
+    schedule_drafts(wp)
+    # rebuild sitemap if route exists
+    code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
+    print("rebuild", code, data)
+
+
+if __name__ == "__main__":
+    main()
