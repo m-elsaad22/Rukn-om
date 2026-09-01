@@ -149,7 +149,7 @@ def list_drafts(wp: WP) -> list[dict]:
             per_page=100,
             page=page,
             context="edit",
-            _fields="id,slug,title,content,featured_media",
+            _fields="id,slug,title,featured_media",
         )
         if code != 200 or not isinstance(data, list) or not data:
             break
@@ -181,6 +181,13 @@ if (!function_exists('rukn_rankmath_oman_setup')) {
             return;
         }
         update_option('rank_math_wizard_completed', true);
+        if (!get_option('rank_math_connect_data')) {
+            update_option('rank_math_connect_data', array(
+                'username' => 'rukn-oman',
+                'email' => 'admin@rukn-eltatawer.com',
+            ));
+        }
+        add_filter('rank_math/registration/skip', '__return_true', 1);
         $titles = get_option('rank-math-options-titles', array());
         if (!is_array($titles)) { $titles = array(); }
         $titles['homepage_title'] = 'ركن التطور عُمان | تنظيف وصيانة وكشف تسربات في مسقط وصلالة وكل مدن السلطنة';
@@ -321,18 +328,44 @@ def publish_privacy(wp: WP) -> None:
         print("privacy create", code, out.get("link") if isinstance(out, dict) else out)
 
 
-def schedule_drafts(wp: WP) -> None:
+def list_future(wp: WP) -> list[dict]:
+    items = []
+    page = 1
+    while True:
+        code, data, hdrs = wp.get(
+            "/wp/v2/posts",
+            status="future",
+            per_page=100,
+            page=page,
+            context="edit",
+            _fields="id,slug,title,date",
+        )
+        if code != 200 or not isinstance(data, list) or not data:
+            break
+        items.extend(data)
+        pages = int(hdrs.get("X-WP-TotalPages") or hdrs.get("x-wp-totalpages") or 1)
+        if page >= pages:
+            break
+        page += 1
+    return items
+
+
+def schedule_drafts(wp: WP, publish_first: bool = True) -> None:
     drafts = list_drafts(wp)
-    print("drafts", len(drafts))
+    print("drafts", len(drafts), flush=True)
     drafts.sort(key=lambda d: score(d.get("slug") or ""))
     media = cover_id(wp)
     now = datetime.now(MUSCAT).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
     published = scheduled = failed = 0
-    first = True
+    first = publish_first
     for i, post in enumerate(drafts):
         slug = post.get("slug") or ""
-        title = (post.get("title") or {}).get("raw") or slug
-        raw = (post.get("content") or {}).get("raw") or ""
+        title = (post.get("title") or {}).get("raw") or (post.get("title") or {}).get("rendered") or slug
+        code_c, full, _ = wp.get(f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title")
+        raw = ""
+        if code_c == 200 and isinstance(full, dict):
+            raw = (full.get("content") or {}).get("raw") or ""
+            title = (full.get("title") or {}).get("raw") or title
         html, seo_title, desc = prepare_content(raw, title, slug)
         payload = {
             "content": html,
@@ -356,17 +389,75 @@ def schedule_drafts(wp: WP) -> None:
         if code in (200, 201):
             if first:
                 published += 1
-                print("PUBLISH NOW", slug, data.get("link"), data.get("status"))
+                print("PUBLISH NOW", slug, data.get("link"), data.get("status"), flush=True)
                 first = False
             else:
                 scheduled += 1
                 if scheduled <= 5 or scheduled % 100 == 0:
-                    print(f"SCHEDULE {scheduled} {payload['date']} {slug} {data.get('status')}")
+                    print(f"SCHEDULE {scheduled} {payload['date']} {slug} {data.get('status')}", flush=True)
         else:
             failed += 1
             print("FAIL", slug, code, data)
         time.sleep(0.08)
     print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts)}, ensure_ascii=False))
+
+
+def resume_hourly(wp: WP) -> None:
+    """Re-spread already-scheduled posts to unique hours, then schedule leftover drafts."""
+    future = list_future(wp)
+    drafts = list_drafts(wp)
+    print("resume future", len(future), "drafts", len(drafts), flush=True)
+    future.sort(key=lambda d: (d.get("date") or "", score(d.get("slug") or "")))
+    drafts.sort(key=lambda d: score(d.get("slug") or ""))
+    start = datetime.now(MUSCAT).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    media = cover_id(wp)
+    failed = 0
+    for i, post in enumerate(future):
+        when = start + timedelta(hours=i)
+        code, data, _ = wp.post(
+            f"/wp/v2/posts/{post['id']}",
+            {"status": "future", "date": when.strftime("%Y-%m-%dT%H:%M:%S")},
+        )
+        if code not in (200, 201):
+            failed += 1
+            print("FAIL future", post.get("slug"), code, data, flush=True)
+        elif i < 3 or i % 100 == 0:
+            print("REDATED", i, when.isoformat(), post.get("slug"), flush=True)
+        time.sleep(0.05)
+    base = start + timedelta(hours=len(future))
+    scheduled = 0
+    for j, post in enumerate(drafts):
+        slug = post.get("slug") or ""
+        title = (post.get("title") or {}).get("raw") or slug
+        code_c, full, _ = wp.get(f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title")
+        raw = (full.get("content") or {}).get("raw") or "" if isinstance(full, dict) else ""
+        if isinstance(full, dict):
+            title = (full.get("title") or {}).get("raw") or title
+        html, seo_title, desc = prepare_content(raw, title, slug)
+        when = base + timedelta(hours=j)
+        payload = {
+            "status": "future",
+            "date": when.strftime("%Y-%m-%dT%H:%M:%S"),
+            "content": html,
+            "excerpt": desc,
+            "featured_media": media or post.get("featured_media") or 0,
+            "meta": {
+                "rank_math_title": seo_title,
+                "rank_math_description": desc,
+                "_rukn_lang": "ar",
+                "_rukn_pair_slug": slug,
+            },
+        }
+        code, data, _ = wp.post(f"/wp/v2/posts/{post['id']}", payload)
+        if code in (200, 201):
+            scheduled += 1
+            if scheduled <= 3 or scheduled % 50 == 0:
+                print("SCHEDULE", scheduled, payload["date"], slug, flush=True)
+        else:
+            failed += 1
+            print("FAIL draft", slug, code, data, flush=True)
+        time.sleep(0.05)
+    print(json.dumps({"redated": len(future), "scheduled_drafts": scheduled, "failed": failed}, ensure_ascii=False), flush=True)
 
 
 def main() -> None:
@@ -379,7 +470,7 @@ def main() -> None:
     code, me, _ = wp.get("/wp/v2/users/me", context="edit")
     if code != 200:
         raise SystemExit(f"auth failed {code}: {me}")
-    print("auth", me.get("slug"))
+    print("auth", me.get("slug"), flush=True)
     wp.post(
         "/wp/v2/settings",
         {
@@ -402,7 +493,10 @@ def main() -> None:
         # Confirm Rank Math dashboard after skip filter.
         code, body, _, final = admin.open(admin.base + "/wp-admin/admin.php?page=rank-math")
         print("rank-math dashboard", code, final[-50:])
-    schedule_drafts(wp)
+    if "--resume" in sys.argv:
+        resume_hourly(wp)
+    else:
+        schedule_drafts(wp, publish_first=True)
     # rebuild sitemap if route exists
     code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
     print("rebuild", code, data)
