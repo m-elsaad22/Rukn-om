@@ -74,6 +74,8 @@ class WP:
             with urllib.request.urlopen(req, context=CTX, timeout=180) as resp:
                 raw = resp.read()
                 return resp.status, json.loads(raw) if raw else {}, dict(resp.headers)
+        except (TimeoutError, OSError) as e:
+            return 599, {"message": str(e)[:200]}, {}
         except urllib.error.HTTPError as e:
             raw = e.read().decode("utf-8", "replace")
             try:
