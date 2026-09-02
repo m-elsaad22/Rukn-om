@@ -137,11 +137,11 @@ def score(slug: str) -> tuple[int, int, str]:
     return (PRIO_RANK.get(service, 500), CITY_RANK.get(city, 50), slug)
 
 
-def unique_en_meta(title: str, slug: str) -> tuple[str, str]:
+def unique_en_meta(title: str, slug: str) -> tuple[str, str, str]:
     service, city = split_slug(slug)
     if service in SERVICES and city in CITIES:
         art = unique_en_article(service, city, title)
-        return art["title"], art["html"]
+        return art["title"], art["html"], art["desc"]
     c = CITIES.get(city, CITIES["muscat"])
     svc_en = service.replace("-", " ").title()
     en_title = f"{svc_en} in {c['en']}, Oman"
@@ -152,12 +152,16 @@ def unique_en_meta(title: str, slug: str) -> tuple[str, str]:
         f"<p>Neighbourhoods we cover: {c['areas_en']}. Pricing is in Omani rial after an on-site visit.</p>"
         f'<p>Arabic page: <a href="/om/{slug}/">{title}</a>.</p></section>'
     )
-    return en_title, html
+    desc = (
+        f"{svc_en} in {c['en']} ({c['gov_en']}): {c['climate_en']}. "
+        f"On-site survey and a written quote in OMR."
+    )[:160]
+    return en_title, html, desc
 
 
 def seo_meta(title: str, slug: str, seo_title: str, desc: str) -> dict:
     service, city = split_slug(slug)
-    en_title, en_html = unique_en_meta(title, slug)
+    en_title, en_html, en_desc = unique_en_meta(title, slug)
     focus = f"{title} {CITIES.get(city, CITIES['muscat'])['ar']}"
     canon = f"https://rukn-eltatawer.com/om/{slug}/"
     return {
@@ -174,6 +178,8 @@ def seo_meta(title: str, slug: str, seo_title: str, desc: str) -> dict:
         "_rukn_pair_slug": slug,
         "_rukn_en_title": en_title,
         "_rukn_en_content": en_html,
+        "_rukn_en_desc": en_desc,
+        "_rukn_en_excerpt": en_desc,
     }
 
 

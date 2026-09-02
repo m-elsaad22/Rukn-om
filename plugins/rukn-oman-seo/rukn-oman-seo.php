@@ -490,10 +490,18 @@ final class Rukn_Oman_SEO
             $title_meta = get_post_meta($post->ID, $en ? self::EN_TITLE : 'rank_math_title', true);
             if ($en) {
                 $desc_meta = get_post_meta($post->ID, self::EN_DESC, true);
+                if (!$desc_meta) {
+                    $en_title_only = get_post_meta($post->ID, self::EN_TITLE, true);
+                    if ($en_title_only) {
+                        $desc_meta = wp_html_excerpt($en_title_only . '. On-site survey and a written OMR quote.', 160);
+                    }
+                }
             } else {
                 $desc_meta = get_post_meta($post->ID, 'rank_math_description', true);
             }
-            $excerpt = wp_strip_all_tags($post->post_excerpt ?: wp_trim_words($post->post_content, 28));
+            $excerpt = $en
+                ? wp_strip_all_tags(get_post_meta($post->ID, self::EN_EXCERPT, true) ?: ($desc_meta ?: ''))
+                : wp_strip_all_tags($post->post_excerpt ?: wp_trim_words($post->post_content, 28));
             $pair = get_post_meta($post->ID, self::PAIR_META, true) ?: $post->post_name;
             $ar_url = $post->post_type === 'services'
                 ? home_url('/services/' . $post->post_name . '/')
