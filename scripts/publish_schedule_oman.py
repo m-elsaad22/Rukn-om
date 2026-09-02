@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Finish WP/theme/Rank Math setup, publish the top draft, schedule the rest hourly.
+"""Finish WP/theme/Rank Math setup, publish the top draft, schedule the rest every 10 minutes.
 
 Credentials from the environment (never committed):
   WP_USER, WP_APP_PASSWORD, WP_ADMIN_PASSWORD, WP_BASE
@@ -17,7 +17,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from oman_copy import CITIES  # noqa: E402
+from oman_copy import (  # noqa: E402
+    CITIES,
+    SERVICES,
+    unique_ar_section,
+    unique_en_article,
+    unique_intro_ar,
+)
 from seo_fix_oman import WP, Admin, strip_uae  # noqa: E402
 
 PHONE = os.environ.get("WP_PHONE", "+971586634710")
@@ -33,6 +39,15 @@ PRIORITY = [
     "split-ac-maintenance",
     "central-ac-maintenance",
     "split-ac-installation",
+    "ac-cleaning-washing",
+    "ac-freon-refill",
+    "ac-duct-maintenance",
+    "ac-relocation-installation",
+    "window-ac-installation",
+    "new-central-ac-installation",
+    "cooling-fault-detection",
+    "commercial-refrigeration-maintenance",
+    "ac-periodic-maintenance-contracts",
     "ac-tech",
     "plumbing-fault-repair",
     "home-plumber",
@@ -65,6 +80,15 @@ PRIORITY = [
     "general-maintenance",
     "building-maintenance",
     "deep-cleaning",
+    "home-cleaning",
+    "apartment-cleaning",
+    "villa-cleaning",
+    "office-cleaning",
+    "water-tank-cleaning",
+    "bathroom-cleaning",
+    "kitchen-cleaning",
+    "carpet-cleaning",
+    "glass-facade-cleaning",
     "duct-cleaning",
     "chimney-cleaning",
     "stone-facade-cleaning",
@@ -113,6 +137,46 @@ def score(slug: str) -> tuple[int, int, str]:
     return (PRIO_RANK.get(service, 500), CITY_RANK.get(city, 50), slug)
 
 
+def unique_en_meta(title: str, slug: str) -> tuple[str, str]:
+    service, city = split_slug(slug)
+    if service in SERVICES and city in CITIES:
+        art = unique_en_article(service, city, title)
+        return art["title"], art["html"]
+    c = CITIES.get(city, CITIES["muscat"])
+    svc_en = service.replace("-", " ").title()
+    en_title = f"{svc_en} in {c['en']}, Oman"
+    html = (
+        f"<section><h2>{en_title}</h2>"
+        f"<p>Rukn Eltatawer provides {svc_en.lower()} in {c['en']}, {c['gov_en']}. "
+        f"{c['note_en']}. Local conditions: {c['climate_en']}. Building stock: {c['stock_en']}.</p>"
+        f"<p>Neighbourhoods we cover: {c['areas_en']}. Pricing is in Omani rial after an on-site visit.</p>"
+        f'<p>Arabic page: <a href="/om/{slug}/">{title}</a>.</p></section>'
+    )
+    return en_title, html
+
+
+def seo_meta(title: str, slug: str, seo_title: str, desc: str) -> dict:
+    service, city = split_slug(slug)
+    en_title, en_html = unique_en_meta(title, slug)
+    focus = f"{title} {CITIES.get(city, CITIES['muscat'])['ar']}"
+    canon = f"https://rukn-eltatawer.com/om/{slug}/"
+    return {
+        "rank_math_title": seo_title,
+        "rank_math_description": desc,
+        "rank_math_focus_keyword": focus[:80],
+        "rank_math_canonical_url": canon,
+        "rank_math_robots": "index, follow",
+        "rank_math_facebook_title": seo_title,
+        "rank_math_facebook_description": desc,
+        "rank_math_twitter_title": seo_title,
+        "rank_math_twitter_description": desc,
+        "_rukn_lang": "ar",
+        "_rukn_pair_slug": slug,
+        "_rukn_en_title": en_title,
+        "_rukn_en_content": en_html,
+    }
+
+
 def prepare_content(raw: str, title: str, slug: str) -> tuple[str, str, str]:
     service, city = split_slug(slug)
     html = strip_uae(raw or "")
@@ -122,7 +186,12 @@ def prepare_content(raw: str, title: str, slug: str) -> tuple[str, str, str]:
     html = re.sub(r"</h1>", "</h2>", html, count=1, flags=re.I)
     html = re.sub(r"<!--rukn-local-start-->.*?<!--rukn-local-end-->", "", html, flags=re.S)
     city_info = CITIES.get(city, CITIES["muscat"])
-    section = f"""<!--rukn-local-start-->
+    if service in SERVICES and city in CITIES:
+        if "rukn-oman-intro" not in html:
+            html = unique_intro_ar(service, city).replace("<p>", '<p class="rukn-oman-intro">', 1) + html
+        section = unique_ar_section(service, city)
+    else:
+        section = f"""<!--rukn-local-start-->
 <section class="rukn-oman-local">
 <h2>{title} في {city_info["ar"]} — {city_info["gov_ar"]}</h2>
 <p>ركن التطور ينفّذ هذه الخدمة {city_info["prep"]} داخل {city_info["gov_ar"]}. {city_info["note_ar"]}. طبيعة المكان: {city_info["climate_ar"]}. المباني الشائعة: {city_info["stock_ar"]}.</p>
@@ -350,42 +419,72 @@ def list_future(wp: WP) -> list[dict]:
     return items
 
 
-def schedule_drafts(wp: WP, publish_first: bool = True) -> None:
+def post_retry(wp: WP, route: str, payload: dict, attempts: int = 4):
+    last = (599, {}, {})
+    for i in range(attempts):
+        last = wp.post(route, payload)
+        if last[0] in (200, 201):
+            return last
+        time.sleep(1.2 * i + 0.6)
+    return last
+
+
+def get_retry(wp: WP, route: str, attempts: int = 4, **query):
+    last = (599, {}, {})
+    for i in range(attempts):
+        last = wp.get(route, **query)
+        if last[0] == 200:
+            return last
+        time.sleep(1.2 * i + 0.4)
+    return last
+
+
+def next_slot(now: datetime | None = None, minutes: int = 10) -> datetime:
+    now = now or datetime.now(MUSCAT)
+    now = now.replace(second=0, microsecond=0)
+    rem = now.minute % minutes
+    if rem:
+        now = now + timedelta(minutes=(minutes - rem))
+    else:
+        now = now + timedelta(minutes=minutes)
+    return now
+
+
+def schedule_drafts(wp: WP, publish_first: bool = True, interval_minutes: int = 10) -> None:
     drafts = list_drafts(wp)
-    print("drafts", len(drafts), flush=True)
+    print("drafts", len(drafts), "interval", interval_minutes, "min", flush=True)
     drafts.sort(key=lambda d: score(d.get("slug") or ""))
     media = cover_id(wp)
-    now = datetime.now(MUSCAT).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    start = next_slot(minutes=interval_minutes)
     published = scheduled = failed = 0
     first = publish_first
-    for i, post in enumerate(drafts):
+    step = 0
+    for post in drafts:
         slug = post.get("slug") or ""
         title = (post.get("title") or {}).get("raw") or (post.get("title") or {}).get("rendered") or slug
-        code_c, full, _ = wp.get(f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title")
+        code_c, full, _ = get_retry(wp, f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title,featured_media")
         raw = ""
+        feat = post.get("featured_media") or 0
         if code_c == 200 and isinstance(full, dict):
             raw = (full.get("content") or {}).get("raw") or ""
             title = (full.get("title") or {}).get("raw") or title
+            feat = full.get("featured_media") or feat
         html, seo_title, desc = prepare_content(raw, title, slug)
         payload = {
             "content": html,
             "excerpt": desc,
-            "featured_media": media or post.get("featured_media") or 0,
-            "meta": {
-                "rank_math_title": seo_title,
-                "rank_math_description": desc,
-                "_rukn_lang": "ar",
-                "_rukn_pair_slug": slug,
-            },
+            "featured_media": feat or media or 0,
+            "meta": seo_meta(title, slug, seo_title, desc),
         }
         if first:
             payload["status"] = "publish"
             payload["date"] = datetime.now(MUSCAT).strftime("%Y-%m-%dT%H:%M:%S")
         else:
-            when = now + timedelta(hours=i - 1)
+            when = start + timedelta(minutes=interval_minutes * step)
             payload["status"] = "future"
             payload["date"] = when.strftime("%Y-%m-%dT%H:%M:%S")
-        code, data, _ = wp.post(f"/wp/v2/posts/{post['id']}", payload)
+            step += 1
+        code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
         if code in (200, 201):
             if first:
                 published += 1
@@ -393,28 +492,29 @@ def schedule_drafts(wp: WP, publish_first: bool = True) -> None:
                 first = False
             else:
                 scheduled += 1
-                if scheduled <= 5 or scheduled % 100 == 0:
+                if scheduled <= 5 or scheduled % 50 == 0:
                     print(f"SCHEDULE {scheduled} {payload['date']} {slug} {data.get('status')}", flush=True)
         else:
             failed += 1
-            print("FAIL", slug, code, data)
-        time.sleep(0.08)
-    print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts)}, ensure_ascii=False))
+            print("FAIL", slug, code, data, flush=True)
+        time.sleep(0.04)
+    print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts), "first_slot": start.isoformat()}, ensure_ascii=False), flush=True)
 
 
-def resume_hourly(wp: WP) -> None:
-    """Re-spread already-scheduled posts to unique hours, then schedule leftover drafts."""
+def resume_interval(wp: WP, interval_minutes: int = 10) -> None:
+    """Re-spread already-scheduled posts, then schedule leftover drafts at a 10-minute cadence."""
     future = list_future(wp)
     drafts = list_drafts(wp)
-    print("resume future", len(future), "drafts", len(drafts), flush=True)
-    future.sort(key=lambda d: (d.get("date") or "", score(d.get("slug") or "")))
+    print("resume future", len(future), "drafts", len(drafts), "interval", interval_minutes, flush=True)
+    future.sort(key=lambda d: score(d.get("slug") or ""))
     drafts.sort(key=lambda d: score(d.get("slug") or ""))
-    start = datetime.now(MUSCAT).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    start = next_slot(minutes=interval_minutes)
     media = cover_id(wp)
     failed = 0
     for i, post in enumerate(future):
-        when = start + timedelta(hours=i)
-        code, data, _ = wp.post(
+        when = start + timedelta(minutes=interval_minutes * i)
+        code, data, _ = post_retry(
+            wp,
             f"/wp/v2/posts/{post['id']}",
             {"status": "future", "date": when.strftime("%Y-%m-%dT%H:%M:%S")},
         )
@@ -423,32 +523,29 @@ def resume_hourly(wp: WP) -> None:
             print("FAIL future", post.get("slug"), code, data, flush=True)
         elif i < 3 or i % 100 == 0:
             print("REDATED", i, when.isoformat(), post.get("slug"), flush=True)
-        time.sleep(0.05)
-    base = start + timedelta(hours=len(future))
+        time.sleep(0.04)
+    base = start + timedelta(minutes=interval_minutes * len(future))
     scheduled = 0
     for j, post in enumerate(drafts):
         slug = post.get("slug") or ""
         title = (post.get("title") or {}).get("raw") or slug
-        code_c, full, _ = wp.get(f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title")
+        code_c, full, _ = get_retry(wp, f"/wp/v2/posts/{post['id']}", context="edit", _fields="id,content,title,featured_media")
         raw = (full.get("content") or {}).get("raw") or "" if isinstance(full, dict) else ""
+        feat = post.get("featured_media") or 0
         if isinstance(full, dict):
             title = (full.get("title") or {}).get("raw") or title
+            feat = full.get("featured_media") or feat
         html, seo_title, desc = prepare_content(raw, title, slug)
-        when = base + timedelta(hours=j)
+        when = base + timedelta(minutes=interval_minutes * j)
         payload = {
             "status": "future",
             "date": when.strftime("%Y-%m-%dT%H:%M:%S"),
             "content": html,
             "excerpt": desc,
-            "featured_media": media or post.get("featured_media") or 0,
-            "meta": {
-                "rank_math_title": seo_title,
-                "rank_math_description": desc,
-                "_rukn_lang": "ar",
-                "_rukn_pair_slug": slug,
-            },
+            "featured_media": feat or media or 0,
+            "meta": seo_meta(title, slug, seo_title, desc),
         }
-        code, data, _ = wp.post(f"/wp/v2/posts/{post['id']}", payload)
+        code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
         if code in (200, 201):
             scheduled += 1
             if scheduled <= 3 or scheduled % 50 == 0:
@@ -456,8 +553,8 @@ def resume_hourly(wp: WP) -> None:
         else:
             failed += 1
             print("FAIL draft", slug, code, data, flush=True)
-        time.sleep(0.05)
-    print(json.dumps({"redated": len(future), "scheduled_drafts": scheduled, "failed": failed}, ensure_ascii=False), flush=True)
+        time.sleep(0.04)
+    print(json.dumps({"redated": len(future), "scheduled_drafts": scheduled, "failed": failed, "interval_minutes": interval_minutes}, ensure_ascii=False), flush=True)
 
 
 def main() -> None:
@@ -490,13 +587,15 @@ def main() -> None:
             fix_theme_schema(admin)
         except Exception as exc:
             print("schema error", exc)
-        # Confirm Rank Math dashboard after skip filter.
-        code, body, _, final = admin.open(admin.base + "/wp-admin/admin.php?page=rank-math")
-        print("rank-math dashboard", code, final[-50:])
+        try:
+            code, body, _, final = admin.open(admin.base + "/wp-admin/admin.php?page=rank-math")
+            print("rank-math dashboard", code, final[-50:])
+        except Exception as exc:
+            print("rank-math dashboard error", exc)
     if "--resume" in sys.argv:
-        resume_hourly(wp)
+        resume_interval(wp, interval_minutes=10)
     else:
-        schedule_drafts(wp, publish_first=True)
+        schedule_drafts(wp, publish_first=True, interval_minutes=10)
     # rebuild sitemap if route exists
     code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
     print("rebuild", code, data)
