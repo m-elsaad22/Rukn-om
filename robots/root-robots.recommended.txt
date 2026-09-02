@@ -1,0 +1,36 @@
+# =============================================================================
+# ملف robots.txt لجذر النطاق فقط:
+#   https://rukn-eltatawer.com/robots.txt
+#   https://www.rukn-eltatawer.com/robots.txt   (انسخ نفس المحتوى إن كان ملفّين)
+#
+# جوجل يقرأ هذا الملف وحده للنطاق. /om/robots.txt و /sa/robots.txt لا يغنيان عنه.
+#
+# تعليمات آمنة:
+# - لا تحذف أي سطر Allow/Disallow موجود.
+# - لا تضف Disallow: /om/ أو /sa/ أو /qa/
+# - أضف فقط أسطر Sitemap الناقصة في الأسفل.
+# =============================================================================
+
+User-Agent: *
+Allow: /
+Allow: /wp-admin/admin-ajax.php
+Allow: /wp-content/uploads/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-content/plugins/
+Disallow: /trackback
+Disallow: /*.php$
+Disallow: /*.inc$
+Disallow: /*.gz$
+
+# We de-index the login page (unnecessary content)
+Disallow: /wp-login.php
+
+# الإمارات (موجود مسبقاً — لا تحذفه)
+Sitemap: https://www.rukn-eltatawer.com/sitemap_index.xml
+# قطر (موجود مسبقاً)
+Sitemap: https://www.rukn-eltatawer.com/qa/sitemap_index.xml
+# عُمان — هذا هو السطر الأهم الناقص
+Sitemap: https://rukn-eltatawer.com/om/sitemap.xml
+# السعودية
+Sitemap: https://www.rukn-eltatawer.com/sa/sitemap_index.xml

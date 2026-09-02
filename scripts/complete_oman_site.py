@@ -362,6 +362,7 @@ def ensure_menu(wp: WP, page_ids: dict[str, int]) -> int:
         ("من نحن", "post_type", page_ids["about"], ""),
         ("الأسئلة الشائعة", "post_type", page_ids["faq"], ""),
         ("اتصل بنا", "post_type", page_ids["contact"], ""),
+        ("خريطة الموقع", "post_type", page_ids["html-sitemap"], ""),
     ]
     for i, (title, typ, oid, url) in enumerate(entries, 1):
         body = {
@@ -460,7 +461,7 @@ def publish_html_sitemap(wp: WP) -> None:
     parts.append(
         '<p><a href="/om/sitemap.xml">سايتماب XML</a> · <a href="/om/our-services/">التصنيفات</a></p></section>'
     )
-    upsert_page(
+    return upsert_page(
         wp,
         "html-sitemap",
         "خريطة الموقع",
@@ -537,7 +538,7 @@ def main() -> None:
         )
 
     extra_faqs(wp)
-    publish_html_sitemap(wp)
+    page_ids["html-sitemap"] = publish_html_sitemap(wp)
     menu_id = ensure_menu(wp, page_ids)
     if menu_id:
         php_with_menu = php + f"\nupdate_option('rukn_main_menu_id', {int(menu_id)});\n"
