@@ -546,6 +546,9 @@ def main() -> None:
                 print(f"skip {i}/{len(posts)} {slug}", flush=True)
             continue
         code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
+        if code == 400 and "service_categories" in payload:
+            payload.pop("service_categories", None)
+            code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
         if code in (200, 201):
             assigned += 1
             if assigned <= 5 or assigned % 50 == 0:
