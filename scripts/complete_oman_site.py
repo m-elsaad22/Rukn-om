@@ -324,6 +324,9 @@ def upsert_snippet(wp: WP, code_php: str) -> None:
     if found:
         code, out, _ = wp.request("PUT", f"/code-snippets/v1/snippets/{found['id']}", data=payload)
         print("structure snippet update", code, out.get("active") if isinstance(out, dict) else out, flush=True)
+        if isinstance(out, dict) and not out.get("active"):
+            wp.request("PUT", f"/code-snippets/v1/snippets/{found['id']}", data={"active": True})
+            print("structure snippet reactivated", flush=True)
     else:
         code, out, _ = wp.post("/code-snippets/v1/snippets", payload)
         print("structure snippet create", code, out.get("id") if isinstance(out, dict) else out, flush=True)
