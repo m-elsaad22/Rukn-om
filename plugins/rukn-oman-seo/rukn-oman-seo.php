@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 1.3.3
+ * Version: 1.4.0
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -32,6 +32,7 @@ final class Rukn_Oman_SEO
         add_action('init', [__CLASS__, 'rewrites'], 20);
         add_action('init', [__CLASS__, 'maybe_flush'], 21);
         add_action('init', [__CLASS__, 'register_meta']);
+        add_action('init', [__CLASS__, 'bind_post_taxonomies'], 40);
         add_filter('request', [__CLASS__, 'filter_request']);
         add_action('template_redirect', [__CLASS__, 'early_routes'], -1);
         add_action('template_redirect', [__CLASS__, 'buffer_start'], 1);
@@ -67,10 +68,10 @@ final class Rukn_Oman_SEO
 
     public static function maybe_flush()
     {
-        if (get_option('rukn_oman_seo_flush') !== '1.3.3') {
+        if (get_option('rukn_oman_seo_flush') !== '1.4.0') {
             self::rewrites();
             flush_rewrite_rules(true);
-            update_option('rukn_oman_seo_flush', '1.3.3');
+            update_option('rukn_oman_seo_flush', '1.4.0');
             self::write_public_files();
         }
     }
@@ -100,6 +101,15 @@ final class Rukn_Oman_SEO
             }
         }
         register_taxonomy_for_object_type('category', 'post');
+    }
+
+    public static function bind_post_taxonomies()
+    {
+        register_taxonomy_for_object_type('cities', 'post');
+        register_taxonomy_for_object_type('service_categories', 'post');
+        if (taxonomy_exists('category')) {
+            register_taxonomy_for_object_type('category', 'post');
+        }
     }
 
     public static function ensure_defaults()
@@ -174,8 +184,19 @@ final class Rukn_Oman_SEO
             wp_safe_redirect(home_url('/en/'), 301);
             exit;
         }
+        if (preg_match('#^/services/?$#', $path) || is_post_type_archive('services')) {
+            wp_safe_redirect(home_url('/our-services/'), 301);
+            exit;
+        }
         if (preg_match('#^/services/([a-z0-9\-]+)/?$#', $path, $m)) {
-            self::force_service_query($m[1]);
+            $muscat = get_page_by_path($m[1] . '-muscat', OBJECT, 'post');
+            if ($muscat && in_array($muscat->post_status, ['publish', 'future'], true) && $muscat->post_status === 'publish') {
+                wp_safe_redirect(get_permalink($muscat), 301);
+                exit;
+            }
+            $hub = get_page_by_path('our-services', OBJECT, 'page');
+            wp_safe_redirect($hub ? get_permalink($hub) : home_url('/our-services/'), 301);
+            exit;
         }
     }
 
@@ -281,10 +302,23 @@ final class Rukn_Oman_SEO
         $urls[] = [home_url('/'), '1.0', 'daily', gmdate('c')];
         $urls[] = [home_url('/en/'), '0.9', 'daily', gmdate('c')];
 
+        foreach (['cities', 'service_categories'] as $tax) {
+            $terms = get_terms(['taxonomy' => $tax, 'hide_empty' => false, 'number' => 50]);
+            if (is_wp_error($terms) || !$terms) {
+                continue;
+            }
+            foreach ($terms as $term) {
+                $link = get_term_link($term);
+                if (!is_wp_error($link)) {
+                    $urls[] = [$link, '0.7', 'weekly', gmdate('c')];
+                }
+            }
+        }
+
         $posts = get_posts([
             'post_type' => ['post', 'page'],
             'post_status' => 'publish',
-            'numberposts' => 500,
+            'numberposts' => 2500,
             'orderby' => 'modified',
             'order' => 'DESC',
         ]);
@@ -485,7 +519,36 @@ final class Rukn_Oman_SEO
             ];
         }
 
-        $post = get_queried_object();
+        $obj = get_queried_object();
+        if ($obj instanceof WP_Term) {
+            $link = get_term_link($obj);
+            if (is_wp_error($link)) {
+                $link = home_url('/');
+            }
+            $desc = wp_strip_all_tags($obj->description ?: '');
+            if ($obj->taxonomy === 'cities') {
+                $title = $en
+                    ? ($obj->name . ' | Home services in Oman | ' . $site_en)
+                    : ('خدمات ركن التطور في ' . $obj->name . ' | ' . $site_ar);
+                $desc = $desc ?: ($en
+                    ? ('Field team in ' . $obj->name . ', Sultanate of Oman. Cleaning, leak detection, AC, plumbing and maintenance. Written OMR quote after a site visit.')
+                    : ('فريق ركن التطور في ' . $obj->name . ' داخل سلطنة عُمان: تنظيف، كشف تسربات، تكييف، سباكة وصيانة. المعاينة ثم سعر بالريال العُماني.'));
+            } else {
+                $title = $en
+                    ? ($obj->name . ' | ' . $site_en)
+                    : ($obj->name . ' | ' . $site_ar);
+                $desc = $desc ?: ($en ? $desc_en : $desc_ar);
+            }
+            return [
+                'title' => $title,
+                'desc' => wp_html_excerpt($desc, 160),
+                'canonical' => $link,
+                'lang' => $en ? 'en-OM' : 'ar-OM',
+                'hreflang' => [['ar-OM', $link], ['x-default', $link]],
+            ];
+        }
+
+        $post = $obj;
         if ($post instanceof WP_Post) {
             $title_meta = get_post_meta($post->ID, $en ? self::EN_TITLE : 'rank_math_title', true);
             if ($en) {
