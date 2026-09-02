@@ -414,6 +414,63 @@ def strip_broken_images(html: str) -> str:
     return html
 
 
+def publish_html_sitemap(wp: WP) -> None:
+    import html as htmlmod
+    from collections import defaultdict
+
+    items = []
+    page = 1
+    while True:
+        code, data, hdrs = wp.get(
+            "/wp/v2/posts",
+            status="publish",
+            per_page=100,
+            page=page,
+            context="edit",
+            _fields="id,slug,title",
+        )
+        if code != 200 or not data:
+            break
+        items.extend(data)
+        pages = int(hdrs.get("X-WP-TotalPages") or hdrs.get("x-wp-totalpages") or 1)
+        if page >= pages:
+            break
+        page += 1
+    groups = defaultdict(list)
+    for post in items:
+        slug = post.get("slug") or ""
+        svc, city = split_slug(slug)
+        title = (post.get("title") or {}).get("raw") or slug
+        groups[cat_for(svc)].append((title, slug, CITIES.get(city, {}).get("ar", city)))
+    parts = [
+        "<section><h2>خريطة المقالات المنشورة الآن</h2>",
+        "<p>المقالات المنشورة فقط. المجدول لا يُفهرس حتى تاريخ نشره. الإنجليزية: <code>/om/en/{slug}/</code>.</p>",
+    ]
+    for slug, name, _d in SERVICE_CATS:
+        rows = groups.get(slug) or []
+        if not rows:
+            continue
+        parts.append(f"<h3>{name} ({len(rows)})</h3><ul>")
+        for title, pslug, city_ar in sorted(rows, key=lambda x: x[2] + x[0]):
+            parts.append(
+                f'<li><a href="/om/{pslug}/">{htmlmod.escape(title)}</a> — {city_ar} · '
+                f'<a href="/om/en/{pslug}/">EN</a></li>'
+            )
+        parts.append("</ul>")
+    parts.append(
+        '<p><a href="/om/sitemap.xml">سايتماب XML</a> · <a href="/om/our-services/">التصنيفات</a></p></section>'
+    )
+    upsert_page(
+        wp,
+        "html-sitemap",
+        "خريطة الموقع",
+        "\n".join(parts),
+        "قائمة المقالات المنشورة في ركن التطور عُمان للزحف والفهرسة.",
+        "Published URL list — Rukn Eltatawer Oman",
+        "<section><h2>Published URLs</h2><p>Only live Oman articles.</p></section>",
+    )
+
+
 def extra_faqs(wp: WP) -> None:
     extras = [
         ("هل تعملون في جميع محافظات السلطنة؟", "نغطي ثماني مدن محورية ونرتب الزيارة حسب الجدول الميداني داخل سلطنة عُمان."),
@@ -480,6 +537,7 @@ def main() -> None:
         )
 
     extra_faqs(wp)
+    publish_html_sitemap(wp)
     menu_id = ensure_menu(wp, page_ids)
     if menu_id:
         php_with_menu = php + f"\nupdate_option('rukn_main_menu_id', {int(menu_id)});\n"
