@@ -1,14 +1,14 @@
 # =============================================================================
-# ملف robots.txt لجذر النطاق فقط:
+# robots.txt لجذر النطاق (الملف الوحيد الذي يقرأه جوجل للنطاق كله)
 #   https://rukn-eltatawer.com/robots.txt
-#   https://www.rukn-eltatawer.com/robots.txt   (انسخ نفس المحتوى إن كان ملفّين)
+#   https://www.rukn-eltatawer.com/robots.txt
 #
-# جوجل يقرأ هذا الملف وحده للنطاق. /om/robots.txt و /sa/robots.txt لا يغنيان عنه.
+# الدول: الإمارات، السعودية، قطر، الكويت، عُمان، البحرين، مصر
 #
-# تعليمات آمنة:
-# - لا تحذف أي سطر Allow/Disallow موجود.
-# - لا تضف Disallow: /om/ أو /sa/ أو /qa/
-# - أضف فقط أسطر Sitemap الناقصة في الأسفل.
+# آمن:
+# - لا تحذف أي Allow/Disallow.
+# - لا تضف Disallow على /om/ أو /sa/ أو /qa/ أو /kw/ أو /bh/ أو /eg/
+# - أضف أسطر Sitemap في الأسفل فقط.
 # =============================================================================
 
 User-Agent: *
@@ -26,11 +26,18 @@ Disallow: /*.gz$
 # We de-index the login page (unnecessary content)
 Disallow: /wp-login.php
 
-# الإمارات (موجود مسبقاً — لا تحذفه)
+# الإمارات
 Sitemap: https://www.rukn-eltatawer.com/sitemap_index.xml
-# قطر (موجود مسبقاً)
-Sitemap: https://www.rukn-eltatawer.com/qa/sitemap_index.xml
-# عُمان — هذا هو السطر الأهم الناقص
-Sitemap: https://rukn-eltatawer.com/om/sitemap.xml
 # السعودية
 Sitemap: https://www.rukn-eltatawer.com/sa/sitemap_index.xml
+# قطر
+Sitemap: https://www.rukn-eltatawer.com/qa/sitemap_index.xml
+# الكويت
+Sitemap: https://rukn-eltatawer.com/kw/sitemap_index.xml
+# عُمان
+Sitemap: https://rukn-eltatawer.com/om/sitemap.xml
+
+# البحرين ومصر: الموقع يعمل، لكن لا يوجد sitemap.xml بعد.
+# بعد تفعيل السايتماب من Rank Math/Yoast في لوحة /bh/ و /eg/ أزل علامة # من السطرين:
+# Sitemap: https://rukn-eltatawer.com/bh/sitemap_index.xml
+# Sitemap: https://rukn-eltatawer.com/eg/sitemap_index.xml
