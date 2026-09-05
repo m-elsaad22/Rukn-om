@@ -507,6 +507,28 @@ def schedule_drafts(wp: WP, publish_first: bool = True, interval_minutes: int = 
     print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts), "first_slot": start.isoformat()}, ensure_ascii=False), flush=True)
 
 
+def list_published(wp: WP) -> list[dict]:
+    items = []
+    page = 1
+    while True:
+        code, data, hdrs = wp.get(
+            "/wp/v2/posts",
+            status="publish",
+            per_page=100,
+            page=page,
+            context="edit",
+            _fields="id,slug,date",
+        )
+        if code != 200 or not isinstance(data, list) or not data:
+            break
+        items.extend(data)
+        pages = int(hdrs.get("X-WP-TotalPages") or hdrs.get("x-wp-totalpages") or 1)
+        if page >= pages:
+            break
+        page += 1
+    return items
+
+
 def last_published_dt(wp: WP) -> datetime | None:
     code, data, _ = wp.get(
         "/wp/v2/posts",
@@ -524,6 +546,71 @@ def last_published_dt(wp: WP) -> datetime | None:
         return datetime.fromisoformat(raw).replace(tzinfo=MUSCAT)
     except ValueError:
         return None
+
+
+def backdate_window(wp: WP, start: datetime, end: datetime) -> None:
+    """Spread remaining scheduled posts (plus any published after `end`) across [start, end]."""
+    now = datetime.now(MUSCAT)
+    future = list_future(wp)
+    after_end = []
+    for post in list_published(wp):
+        raw = post.get("date") or ""
+        try:
+            dt = datetime.fromisoformat(raw).replace(tzinfo=MUSCAT)
+        except ValueError:
+            continue
+        if dt > end:
+            after_end.append(post)
+    queue = future + after_end
+    queue.sort(key=lambda d: (d.get("date") or "", score(d.get("slug") or "")))
+    n = len(queue)
+    print(
+        "backdate",
+        start.isoformat(),
+        "→",
+        end.isoformat(),
+        "items",
+        n,
+        "future",
+        len(future),
+        "after_end",
+        len(after_end),
+        flush=True,
+    )
+    if n == 0:
+        return
+    span = (end - start).total_seconds()
+    step = span / (n - 1) if n > 1 else 0
+    published = failed = 0
+    for i, post in enumerate(queue):
+        when = start + timedelta(seconds=step * i)
+        when = when.replace(microsecond=0)
+        payload = {
+            "date": when.strftime("%Y-%m-%dT%H:%M:%S"),
+            "status": "publish" if when <= now else "future",
+        }
+        code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
+        if code in (200, 201):
+            published += 1
+            if published <= 6 or published % 50 == 0:
+                print(f"SET {published} {payload['date']} {payload['status']} {post.get('slug')}", flush=True)
+        else:
+            failed += 1
+            print("FAIL", post.get("slug"), code, data, flush=True)
+        time.sleep(0.03)
+    print(
+        json.dumps(
+            {
+                "moved": published,
+                "failed": failed,
+                "total": n,
+                "first": start.isoformat(),
+                "last": end.isoformat(),
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
 
 
 def reschedule_from_last_published(wp: WP, interval_minutes: int = 1) -> None:
@@ -655,6 +742,13 @@ def main() -> None:
     if code != 200:
         raise SystemExit(f"auth failed {code}: {me}")
     print("auth", me.get("slug"), flush=True)
+    if "--backdate-yesterday-to-2pm" in sys.argv:
+        start = datetime(2026, 9, 4, 0, 0, tzinfo=MUSCAT)
+        end = datetime(2026, 9, 5, 14, 0, tzinfo=MUSCAT)
+        backdate_window(wp, start, end)
+        code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
+        print("rebuild", code, data)
+        return
     if "--every-minute" in sys.argv:
         reschedule_from_last_published(wp, interval_minutes=1)
         code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
