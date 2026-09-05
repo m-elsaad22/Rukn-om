@@ -1,0 +1,43 @@
+# =============================================================================
+# robots.txt لجذر النطاق (الملف الوحيد الذي يقرأه جوجل للنطاق كله)
+#   https://rukn-eltatawer.com/robots.txt
+#   https://www.rukn-eltatawer.com/robots.txt
+#
+# الدول: الإمارات، السعودية، قطر، الكويت، عُمان، البحرين، مصر
+#
+# آمن:
+# - لا تحذف أي Allow/Disallow.
+# - لا تضف Disallow على /om/ أو /sa/ أو /qa/ أو /kw/ أو /bh/ أو /eg/
+# - أضف أسطر Sitemap في الأسفل فقط.
+# =============================================================================
+
+User-Agent: *
+Allow: /
+Allow: /wp-admin/admin-ajax.php
+Allow: /wp-content/uploads/
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-content/plugins/
+Disallow: /trackback
+Disallow: /*.php$
+Disallow: /*.inc$
+Disallow: /*.gz$
+
+# We de-index the login page (unnecessary content)
+Disallow: /wp-login.php
+
+# الإمارات
+Sitemap: https://www.rukn-eltatawer.com/sitemap_index.xml
+# السعودية
+Sitemap: https://www.rukn-eltatawer.com/sa/sitemap_index.xml
+# قطر
+Sitemap: https://www.rukn-eltatawer.com/qa/sitemap_index.xml
+# الكويت
+Sitemap: https://rukn-eltatawer.com/kw/sitemap_index.xml
+# عُمان
+Sitemap: https://rukn-eltatawer.com/om/sitemap.xml
+
+# البحرين ومصر: الموقع يعمل، لكن لا يوجد sitemap.xml بعد.
+# بعد تفعيل السايتماب من Rank Math/Yoast في لوحة /bh/ و /eg/ أزل علامة # من السطرين:
+# Sitemap: https://rukn-eltatawer.com/bh/sitemap_index.xml
+# Sitemap: https://rukn-eltatawer.com/eg/sitemap_index.xml
