@@ -507,6 +507,87 @@ def schedule_drafts(wp: WP, publish_first: bool = True, interval_minutes: int = 
     print(json.dumps({"published_now": published, "scheduled": scheduled, "failed": failed, "total": len(drafts), "first_slot": start.isoformat()}, ensure_ascii=False), flush=True)
 
 
+def last_published_dt(wp: WP) -> datetime | None:
+    code, data, _ = wp.get(
+        "/wp/v2/posts",
+        status="publish",
+        per_page=1,
+        orderby="date",
+        order="desc",
+        context="edit",
+        _fields="id,slug,date",
+    )
+    if code != 200 or not data:
+        return None
+    raw = data[0].get("date") or ""
+    try:
+        return datetime.fromisoformat(raw).replace(tzinfo=MUSCAT)
+    except ValueError:
+        return None
+
+
+def reschedule_from_last_published(wp: WP, interval_minutes: int = 1) -> None:
+    """Continue from the last published post: 1-minute gaps, publish past/now slots."""
+    future = list_future(wp)
+    future.sort(key=lambda d: (d.get("date") or "", score(d.get("slug") or "")))
+    last = last_published_dt(wp)
+    now = datetime.now(MUSCAT).replace(second=0, microsecond=0)
+    if last:
+        start = last + timedelta(minutes=interval_minutes)
+    else:
+        start = now + timedelta(minutes=interval_minutes)
+    print(
+        "from-last",
+        last.isoformat() if last else None,
+        "start",
+        start.isoformat(),
+        "future",
+        len(future),
+        "interval",
+        interval_minutes,
+        flush=True,
+    )
+    published = scheduled = failed = 0
+    for i, post in enumerate(future):
+        when = start + timedelta(minutes=interval_minutes * i)
+        payload = {"date": when.strftime("%Y-%m-%dT%H:%M:%S")}
+        if when <= now:
+            payload["status"] = "publish"
+        else:
+            payload["status"] = "future"
+        code, data, _ = post_retry(wp, f"/wp/v2/posts/{post['id']}", payload)
+        if code in (200, 201):
+            st = data.get("status") if isinstance(data, dict) else payload["status"]
+            if st == "publish" or payload.get("status") == "publish":
+                published += 1
+                if published <= 8 or published % 25 == 0:
+                    print(f"PUBLISH {published} {payload['date']} {post.get('slug')} {st}", flush=True)
+            else:
+                scheduled += 1
+                if scheduled <= 5 or scheduled % 50 == 0:
+                    print(f"SCHEDULE {scheduled} {payload['date']} {post.get('slug')} {st}", flush=True)
+        else:
+            failed += 1
+            print("FAIL", post.get("slug"), code, data, flush=True)
+        time.sleep(0.03)
+    last_when = start + timedelta(minutes=interval_minutes * max(len(future) - 1, 0))
+    print(
+        json.dumps(
+            {
+                "published_catchup": published,
+                "scheduled": scheduled,
+                "failed": failed,
+                "total": len(future),
+                "start": start.isoformat(),
+                "last_slot": last_when.isoformat(),
+                "interval_minutes": interval_minutes,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+
+
 def resume_interval(wp: WP, interval_minutes: int = 10) -> None:
     """Re-spread already-scheduled posts, then schedule leftover drafts at a 10-minute cadence."""
     future = list_future(wp)
@@ -574,6 +655,11 @@ def main() -> None:
     if code != 200:
         raise SystemExit(f"auth failed {code}: {me}")
     print("auth", me.get("slug"), flush=True)
+    if "--every-minute" in sys.argv:
+        reschedule_from_last_published(wp, interval_minutes=1)
+        code, data, _ = wp.post("/rukn-seo/v1/rebuild", {})
+        print("rebuild", code, data)
+        return
     wp.post(
         "/wp/v2/settings",
         {
