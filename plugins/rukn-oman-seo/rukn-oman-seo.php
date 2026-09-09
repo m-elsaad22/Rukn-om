@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 1.4.0
+ * Version: 1.5.0
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -10,6 +10,8 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+require_once __DIR__ . '/kayan-blocks.php';
 
 final class Rukn_Oman_SEO
 {
@@ -68,10 +70,10 @@ final class Rukn_Oman_SEO
 
     public static function maybe_flush()
     {
-        if (get_option('rukn_oman_seo_flush') !== '1.4.0') {
+        if (get_option('rukn_oman_seo_flush') !== '1.5.0') {
             self::rewrites();
             flush_rewrite_rules(true);
-            update_option('rukn_oman_seo_flush', '1.4.0');
+            update_option('rukn_oman_seo_flush', '1.5.0');
             self::write_public_files();
         }
     }
