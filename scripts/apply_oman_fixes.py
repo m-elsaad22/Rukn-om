@@ -62,6 +62,92 @@ def deactivate_seo_snippet(wp: WP) -> None:
             print("deactivated duplicate SEO snippet", item["id"], flush=True)
 
 
+def php_string(blob: bytes) -> str:
+    import gzip
+    import base64
+
+    return base64.b64encode(gzip.compress(blob)).decode("ascii")
+
+
+def deploy_plugin_via_snippet(wp: WP) -> None:
+    plugin_dir = ROOT / "plugins" / "rukn-oman-seo"
+    parts = []
+    for name in ("rukn-oman-seo.php", "frontend-fix.php", "kayan-blocks.php", "site-structure.php"):
+        blob = (plugin_dir / name).read_bytes()
+        parts.append(f"'{name}' => '{php_string(blob)}'")
+    php = """
+$dir = WP_PLUGIN_DIR . '/rukn-oman-seo';
+if (!is_dir($dir) && !wp_mkdir_p($dir)) {
+    return;
+}
+$files = [
+""" + ",\n".join(parts) + """
+];
+foreach ($files as $name => $b64) {
+    $raw = gzdecode(base64_decode($b64));
+    if (!is_string($raw) || $raw === '') {
+        continue;
+    }
+    file_put_contents($dir . '/' . $name, $raw);
+}
+update_option('rukn_oman_plugin_files', '2.0.2');
+if (!function_exists('activate_plugin')) {
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+}
+activate_plugin('rukn-oman-seo/rukn-oman-seo.php', '', false, true);
+if (class_exists('Rukn_Oman_SEO')) {
+    Rukn_Oman_SEO::activate();
+}
+"""
+    payload = {
+        "name": "Rukn Oman plugin writer",
+        "desc": "Writes rukn-oman-seo plugin files then self-deactivates conceptually via option.",
+        "code": php.strip(),
+        "scope": "global",
+        "active": True,
+        "priority": 1,
+    }
+    code, data, _ = wp.get("/code-snippets/v1/snippets", per_page=50)
+    found = None
+    if code == 200 and isinstance(data, list):
+        for item in data:
+            if item.get("name") == "Rukn Oman plugin writer":
+                found = item
+                break
+    if found:
+        code, out, _ = wp.request("PUT", f"/code-snippets/v1/snippets/{found['id']}", data=payload)
+        print("writer snippet update", code, out.get("id") if isinstance(out, dict) else out, flush=True)
+        wp.request("PUT", f"/code-snippets/v1/snippets/{found['id']}", data={"active": True})
+    else:
+        code, out, _ = wp.post("/code-snippets/v1/snippets", payload)
+        print("writer snippet create", code, out.get("id") if isinstance(out, dict) else str(out)[:300], flush=True)
+    # Execute by loading front-end.
+    import ssl
+    import urllib.request
+
+    ctx = ssl.create_default_context()
+    req = urllib.request.Request(
+        BASE + "/?rukn-deploy=" + str(int(time.time())),
+        headers={"User-Agent": "RuknOmanFix/2.0"},
+    )
+    try:
+        with urllib.request.urlopen(req, context=ctx, timeout=60) as r:
+            print("writer hit", r.status, flush=True)
+    except Exception as e:
+        print("writer hit err", e, flush=True)
+    time.sleep(1)
+    activate_plugin_rest(wp)
+    code, data, _ = wp.get("/wp/v2/plugins/rukn-oman-seo/rukn-oman-seo")
+    print("plugin after writer", code, data.get("status") if isinstance(data, dict) else data, data.get("version") if isinstance(data, dict) else "", flush=True)
+    # Turn writer off so it does not rewrite every request.
+    code, data, _ = wp.get("/code-snippets/v1/snippets", per_page=50)
+    if code == 200 and isinstance(data, list):
+        for item in data:
+            if item.get("name") == "Rukn Oman plugin writer" and item.get("active"):
+                wp.request("PUT", f"/code-snippets/v1/snippets/{item['id']}", data={"active": False})
+                print("writer snippet deactivated", item["id"], flush=True)
+
+
 def update_structure_snippet(wp: WP, menu_id: int | None) -> None:
     php = (ROOT / "plugins/rukn-oman-seo/site-structure.php").read_text(encoding="utf-8")
     php = php.replace("<?php", "", 1)
@@ -252,7 +338,7 @@ def verify() -> None:
         try:
             with opener.open(req, timeout=30) as r:
                 body = r.read().decode("utf-8", "replace")
-                tel = 'href="tel:' in body or "href='tel:" in body
+                tel = bool(re.search(r'''href=["']tel:''', body))
                 empty_nav = 'nav class="menu"></nav>' in body
                 hide = "rukn-hide-call" in body and "<body" in body
                 wa = "971586634710" in body
@@ -277,12 +363,12 @@ def main() -> None:
     print("auth", me.get("slug"), me.get("roles"), flush=True)
 
     deactivate_polylang(wp)
+    deploy_plugin_via_snippet(wp)
 
     if admin_pw:
         zip_path = build_plugin_zip(ROOT / "plugins" / "rukn-oman-seo.zip")
         admin = Admin(BASE, user, admin_pw)
         admin.login()
-        wp.post("/wp/v2/plugins/rukn-oman-seo/rukn-oman-seo", {"status": "inactive"})
         upload_plugin(admin, zip_path)
         activate_plugin_rest(wp)
         flush_permalinks(admin)

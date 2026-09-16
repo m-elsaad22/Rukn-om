@@ -15,6 +15,7 @@ final class Rukn_Oman_Frontend
     {
         add_action('template_redirect', [__CLASS__, 'routes'], -20);
         add_action('template_redirect', [__CLASS__, 'stop_soft_404'], 0);
+        add_action('template_redirect', [__CLASS__, 'serve_real_404'], 1);
         add_action('pre_get_posts', [__CLASS__, 'tax_archives']);
         add_filter('theme_mod_nav_menu_locations', [__CLASS__, 'menu_location']);
         add_filter('body_class', [__CLASS__, 'body_class']);
@@ -32,7 +33,27 @@ final class Rukn_Oman_Frontend
         add_filter('redirect_canonical', [__CLASS__, 'stop_canonical'], 0, 2);
         add_filter('wp_redirect', [__CLASS__, 'block_home_404_redirect'], 0, 2);
         add_filter('rank_math/redirection/fallback_404', '__return_false');
+        add_action('init', [__CLASS__, 'disable_404_home_redirect'], 6);
         add_action('wp', [__CLASS__, 'noindex_paged_home']);
+    }
+
+    public static function disable_404_home_redirect()
+    {
+        $gen = get_option('rank-math-options-general');
+        if (!is_array($gen)) {
+            return;
+        }
+        $keys = ['fallback', 'fallback_behavior', 'redirections_fallback', '404_redirect'];
+        $changed = false;
+        foreach ($keys as $key) {
+            if (!empty($gen[$key]) && !in_array($gen[$key], ['default', 'off', ''], true)) {
+                $gen[$key] = 'default';
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            update_option('rank-math-options-general', $gen);
+        }
     }
 
     public static function stop_canonical($redirect, $requested)
@@ -184,6 +205,22 @@ final class Rukn_Oman_Frontend
             status_header(404);
             nocache_headers();
         }
+    }
+
+    public static function serve_real_404()
+    {
+        if (is_admin() || wp_doing_ajax() || wp_doing_cron()) {
+            return;
+        }
+        if (!is_404()) {
+            return;
+        }
+        $path = rtrim(self::path(), '/') . '/';
+        if (preg_match('#^/(contact-us|blog|page/\d+)/?$#', $path)) {
+            return;
+        }
+        status_header(404);
+        nocache_headers();
     }
 
     public static function url_has_content($path)

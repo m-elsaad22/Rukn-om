@@ -73,13 +73,22 @@ class WP:
         try:
             with urllib.request.urlopen(req, context=CTX, timeout=180) as resp:
                 raw = resp.read()
-                return resp.status, json.loads(raw) if raw else {}, dict(resp.headers)
+                text = raw.decode("utf-8", "replace") if raw else ""
+                parsed = {}
+                if text:
+                    start = min([i for i in (text.find("{"), text.find("[")) if i >= 0], default=-1)
+                    if start >= 0:
+                        parsed, _end = json.JSONDecoder().raw_decode(text[start:])
+                    else:
+                        parsed = {"message": text[:800]}
+                return resp.status, parsed, dict(resp.headers)
         except (TimeoutError, OSError) as e:
             return 599, {"message": str(e)[:200]}, {}
         except urllib.error.HTTPError as e:
             raw = e.read().decode("utf-8", "replace")
             try:
-                parsed = json.loads(raw)
+                start = min([i for i in (raw.find("{"), raw.find("[")) if i >= 0], default=-1)
+                parsed = json.JSONDecoder().raw_decode(raw[start:])[0] if start >= 0 else {"message": raw[:800], "status": e.code}
             except json.JSONDecodeError:
                 parsed = {"message": raw[:800], "status": e.code}
             return e.code, parsed, dict(e.headers)

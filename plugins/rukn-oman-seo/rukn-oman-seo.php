@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 2.0.1
+ * Version: 2.0.2
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -73,10 +73,10 @@ final class Rukn_Oman_SEO
 
     public static function maybe_flush()
     {
-        if (get_option('rukn_oman_seo_flush') !== '2.0.1') {
+        if (get_option('rukn_oman_seo_flush') !== '2.0.2') {
             self::rewrites();
             flush_rewrite_rules(true);
-            update_option('rukn_oman_seo_flush', '2.0.1');
+            update_option('rukn_oman_seo_flush', '2.0.2');
             self::write_public_files();
         }
     }
@@ -435,6 +435,7 @@ final class Rukn_Oman_SEO
     public static function render_virtual_post(WP_Post $post, $as = 'single')
     {
         status_header(200);
+        nocache_headers();
         global $wp_query, $wp;
         $GLOBALS['post'] = $post;
         setup_postdata($post);
@@ -449,15 +450,16 @@ final class Rukn_Oman_SEO
         $wp_query->posts = [$post];
         $wp_query->post_count = 1;
         $wp_query->found_posts = 1;
+        $wp_query->max_num_pages = 1;
         if (isset($wp) && is_object($wp)) {
             $wp->query_vars['error'] = '';
+            $wp->query_vars['p'] = $post->ID;
+            $wp->query_vars['post_type'] = $post->post_type;
+            $wp->query_vars['name'] = $post->post_name;
+            if ($as === 'page') {
+                $wp->query_vars['pagename'] = $post->post_name;
+            }
         }
-        $template = get_query_template($as === 'page' ? 'page' : 'single');
-        if (!$template) {
-            $template = get_query_template('index');
-        }
-        include $template;
-        exit;
     }
 
     public static function render_english_home()
@@ -839,7 +841,7 @@ final class Rukn_Oman_SEO
         self::ensure_defaults();
         self::rewrites();
         flush_rewrite_rules(false);
-        update_option('rukn_oman_seo_flush', '2.0.1');
+        update_option('rukn_oman_seo_flush', '2.0.2');
         self::write_public_files();
         self::purge_cache();
         return [
@@ -879,4 +881,9 @@ final class Rukn_Oman_SEO
 }
 
 add_action('plugins_loaded', ['Rukn_Oman_SEO', 'init']);
-register_activation_hook(__FILE__, ['Rukn_Oman_SEO', 'activate']);
+if (did_action('plugins_loaded')) {
+    Rukn_Oman_SEO::init();
+}
+if (function_exists('register_activation_hook')) {
+    register_activation_hook(__FILE__, ['Rukn_Oman_SEO', 'activate']);
+}
