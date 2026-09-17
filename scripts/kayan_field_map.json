@@ -1,0 +1,71 @@
+{
+  "write_mode": "kayan",
+  "write_route": "/rukn/v1/article/{id}",
+  "write_method": "POST",
+  "notes": "Kayan (YourColor) stores each shortcode as one serialized post meta array, not five ACF flat keys. Core WP REST GET omits these keys because they are not register_post_meta'd with show_in_rest. Writes go through the rukn-oman-seo route.",
+  "shortcodes": {
+    "post_features": {
+      "label": "مميزات المقال",
+      "metabox": "YC__CFM-yourcolor__features_short_code",
+      "meta_key": "post__features__data",
+      "hide_key": "hide_features__section",
+      "aliases": ["features_field", "features"],
+      "children": {
+        "title": "features__title",
+        "content": "features__content",
+        "items": "yourcolor__post_features[][title|content|icon]"
+      }
+    },
+    "post_steps": {
+      "label": "خطوات العمل",
+      "metabox": "YC__CFM-yourcolor__work_steps_short_code",
+      "meta_key": "post__work_steps__data",
+      "hide_key": "hide_work_steps",
+      "aliases": ["steps_field", "steps"],
+      "children": {
+        "title": "work_steps__title",
+        "content": "work_steps__content",
+        "items": "work_steps_items[][title|content]"
+      }
+    },
+    "post_prices": {
+      "label": "قائمة الأسعار",
+      "metabox": "YC__CFM-yourcolor__price_list_short_code",
+      "meta_key": "post__price_list__data",
+      "hide_key": "hide_price_list__section",
+      "aliases": ["prices_field", "prices"],
+      "children": {
+        "title": "price_list__title",
+        "content": "price_list__content",
+        "col1": "price_list__table_title1",
+        "col2": "price_list__table_title2",
+        "items": "price_list__items[][title|value]"
+      }
+    },
+    "post_services": {
+      "label": "خدمات مرتبطة",
+      "metabox": "YC__CFM-yourcolor__post_services_short_code",
+      "meta_key": "post__services__data",
+      "hide_key": "hide_services_section",
+      "aliases": ["services_field", "services"],
+      "children": {
+        "title": "services__title",
+        "content": "services__content",
+        "items": "post_services_items[][title|content|image|image_id]"
+      }
+    },
+    "post_call": {
+      "label": "قسم الاتصال",
+      "metabox": "YC__CFM-yourcolor__post_call_short_code",
+      "meta_key": "post__call_section__data",
+      "hide_key": "hide_call_section",
+      "aliases": ["call_action_field", "call"],
+      "children": {
+        "title": "call_section_title",
+        "content": "call_section_content",
+        "phone": "call_section_phone",
+        "whatsapp": "call_section_whatsapp"
+      }
+    }
+  }
+}
