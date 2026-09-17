@@ -1,0 +1,8 @@
+plugins/*.zip
+__pycache__/
+*.pyc
+.env
+scripts/__pycache__/
+*.log
+fill-kayan-progress.json
+fill-kayan-progress.jsonl
