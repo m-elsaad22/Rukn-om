@@ -22,7 +22,6 @@ import html as htmlmod
 import http.cookiejar
 import json
 import os
-import random
 import re
 import ssl
 import sys
@@ -70,9 +69,11 @@ CITY_ALIASES = {
 }
 
 LLM_INSTRUCTIONS = """أنت محرر تحويل في سلطنة عُمان لشركة خدمات منزلية اسمها «ركن التطور».
-اكتب بالعربية الفصحى الواضحة، بلا إيموجي، وبسياق عُماني فقط (ريال عُماني ر.ع، مناخ الخليج/عُمان، أحياء المدينة المذكورة).
+اكتب بالعربية الفصحى الواضحة، بلا إيموجي، وبسياق عُماني فقط (ريال عُماني، مناخ عُمان، المدينة المذكورة).
 ممنوع ذكر الإمارات أو درهم أو دبي. ممنوع أرقام هاتف للاتصال. واتساب فقط: {whatsapp}.
 العنوان يحدد الخدمة والمدينة.
+لا تغيّر عنوان المقال ولا تقترح URL جديداً.
+لا تخترع أسعاراً أو أرقاماً تجارية أو نسب خصم أو ضمانات. لا توجد قائمة أسعار مؤكدة.
 
 أرجع JSON فقط بالمفاتيح التالية:
 {{
@@ -84,9 +85,9 @@ LLM_INSTRUCTIONS = """أنت محرر تحويل في سلطنة عُمان لش
   "steps_title": "عنوان خطوات العمل",
   "steps_intro": "جملة",
   "steps": [{{"title": "...", "content": "..."}}]  // 3 أو 4 خطوات مهنية
-  "prices_title": "عنوان التسعير بالريال العُماني",
-  "prices_intro": "وضّح أنها تقديرات بعد المعاينة وليست عرضاً ملزماً",
-  "prices": [{{"title": "بند", "value": "من-إلى ر.ع"}}]  // 4 صفوف تقديرية واقعية لسوق عُمان
+  "prices_title": "عنوان يوضح أن التسعير بالريال العُماني بعد المعاينة",
+  "prices_intro": "جملة صريحة: لا سعر ثابت في الصفحة، والقيمة تُكتب بعد المعاينة",
+  "prices": [{{"title": "عامل يؤثر على التكلفة", "value": "يُحدد بعد المعاينة"}}]  // 4 صفوف. value دائماً يُحدد بعد المعاينة بلا أرقام
   "services_title": "خدمات مرتبطة في نفس المدينة",
   "services_intro": "جملة",
   "services": [{{"title": "...", "content": "..."}}]  // بالضبط 3 خدمات فرعية مرتبطة
@@ -437,7 +438,7 @@ def prices_html(rows: list[dict]) -> str:
         "</tr></thead><tbody>"
         + "".join(body)
         + "</tbody></table></div>"
-        '<p style="font-size:.9rem;">الأرقام تقديرية لسوق سلطنة عُمان وتُثبَّت كتابياً بعد المعاينة.</p>'
+        '<p style="font-size:.9rem;">لا توجد أسعار ثابتة في هذه الصفحة. التكلفة بالريال العُماني تُكتب بعد المعاينة وليست عرضاً ملزماً مسبقاً.</p>'
     )
 
 
@@ -473,11 +474,22 @@ def take_list(payload: dict, key: str, nmin: int, nmax: int) -> list[dict]:
     return clean[:nmax]
 
 
+def sanitize_price_value(value: str) -> str:
+    text = (value or "").strip()
+    if re.search(r"\d", text) and "معاينة" not in text:
+        return "يُحدد بعد المعاينة"
+    if re.search(r"\d+(?:\.\d+)?\s*(?:[–\-إلى]|ر\.?\s*ع)", text):
+        return "يُحدد بعد المعاينة"
+    return text or "يُحدد بعد المعاينة"
+
+
 def validate_generated(payload: dict) -> dict:
     out = dict(payload)
     out["features"] = take_list(payload, "features", 4, 4)
     out["steps"] = take_list(payload, "steps", 3, 4)
     out["prices"] = take_list(payload, "prices", 3, 6)
+    for row in out["prices"]:
+        row["value"] = sanitize_price_value(row.get("value") or "")
     out["services"] = take_list(payload, "services", 3, 3)
     for key in (
         "features_title",
@@ -504,15 +516,13 @@ def validate_generated(payload: dict) -> dict:
 
 
 def offline_generate(post: dict, whatsapp: str) -> dict:
-    seed = int.from_bytes((str(post["id"]) + "|" + post["title"]).encode("utf-8"), "big")
-    rng = random.Random(seed % (2**32))
     city = post["city_ar"]
     svc = post["service_ar"]
     bands = [
-        ("معاينة وتشخيص", f"{8 + rng.randint(0, 7)}–{15 + rng.randint(0, 10)} ر.ع"),
-        (f"تنفيذ أساسي لـ {svc}", f"{25 + rng.randint(0, 20)}–{55 + rng.randint(0, 40)} ر.ع"),
-        ("عمل بمساحة أكبر أو خامات إضافية", f"{70 + rng.randint(0, 30)}–{140 + rng.randint(0, 80)} ر.ع"),
-        ("زيارة عاجلة داخل المدينة", f"{15 + rng.randint(0, 10)}–{35 + rng.randint(0, 15)} ر.ع"),
+        ("معاينة وتشخيص الحالة", "يُحدد بعد المعاينة"),
+        (f"نطاق تنفيذ {svc}", "يُحدد بعد المعاينة"),
+        ("خامات أو مساحة إضافية", "يُحدد بعد المعاينة"),
+        ("زيارة عاجلة داخل المدينة", "يُحدد بعد المعاينة"),
     ]
     payload = {
         "service_ar": svc,
@@ -533,8 +543,8 @@ def offline_generate(post: dict, whatsapp: str) -> dict:
             {"title": "تنفيذ المتفق عليه فقط", "content": "العمل يلتزم بالعرض. ما لم يُذكر يبقى خارج الفاتورة."},
             {"title": "مراجعة التسليم", "content": "ملخص ما أُنجز وما يحتاج زيارة لاحقة إن وُجد."},
         ],
-        "prices_title": f"تقدير أسعار {svc} في {city}",
-        "prices_intro": "الأرقام تقدير لسوق عُمان وتُثبَّت بعد المعاينة.",
+        "prices_title": f"تسعير {svc} في {city} بعد المعاينة",
+        "prices_intro": "لا نضع أسعاراً ثابتة هنا. القيمة بالريال العُماني تُكتب بعد فحص الموقع في المدينة.",
         "prices": [{"title": t, "value": v} for t, v in bands],
         "services_title": f"خدمات مرتبطة في {city}",
         "services_intro": "قد تكشف المعاينة حاجة مجاورة؛ كل بند يُسعَّر منفصلاً.",
@@ -655,8 +665,11 @@ def pick_provider(args) -> str:
             return "openai"
         if os.environ.get("GEMINI_API_KEY"):
             return "gemini"
-        log("no LLM key found; using --offline templates")
-        return "offline"
+        raise SystemExit("Set OPENAI_API_KEY or GEMINI_API_KEY (do not use --offline for production fills).")
+    if choice in {"openai", "gemini"}:
+        env_name = "OPENAI_API_KEY" if choice == "openai" else "GEMINI_API_KEY"
+        if not os.environ.get(env_name):
+            raise SystemExit(f"{env_name} is missing")
     return choice
 
 
@@ -811,6 +824,33 @@ def inspect_keys(wp: WP, args, mapping: dict) -> None:
     log("call_section_whatsapp sample: " + (wa or "(empty)"))
 
 
+def write_report(path: Path, stats: dict, errors: list[str], provider: str, mode: str, applied: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# Kayan field fill report",
+        "",
+        f"- time: {utc_now()}",
+        f"- provider: {provider}",
+        f"- mode: {mode}",
+        f"- apply: {applied}",
+        "",
+        f"- إجمالي المقالات: {stats.get('queued', 0)}",
+        f"- تم تحديثه: {stats.get('updated', 0)}",
+        f"- تم تخطيه: {stats.get('skipped', 0)}",
+        f"- dry-run: {stats.get('dry', 0)}",
+        f"- فشل: {stats.get('failed', 0)}",
+        "",
+        "## أهم الأخطاء",
+        "",
+    ]
+    if errors:
+        lines.extend(f"- {e}" for e in errors[:20])
+    else:
+        lines.append("- لا توجد")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def resolve_write_mode(args, mapping: dict) -> str:
     return (args.write_mode or os.environ.get("WRITE_MODE") or mapping.get("write_mode") or "kayan").lower()
 
@@ -824,7 +864,6 @@ def process(args) -> int:
         raise SystemExit("Set WP_USER and WP_APP_PASSWORD (see .env.example)")
     wp = WP(args.base, user, app)
     whatsapp = re.sub(r"\D", "", os.environ.get("WP_WHATSAPP") or WHATSAPP_DEFAULT)
-    provider = pick_provider(args)
     mode = resolve_write_mode(args, mapping)
 
     if args.print_map:
@@ -834,11 +873,13 @@ def process(args) -> int:
     code, me, _ = wp.get("/wp/v2/users/me", context="edit")
     if code != 200 or not isinstance(me, dict):
         raise SystemExit(f"auth failed {code}: {me}")
-    log(f"auth ok user={me.get('slug')} roles={me.get('roles')} provider={provider} mode={mode} apply={args.apply}")
 
     if args.inspect_keys:
         inspect_keys(wp, args, mapping)
         return 0
+
+    provider = "classify" if args.classify_only else pick_provider(args)
+    log(f"auth ok user={me.get('slug')} roles={me.get('roles')} provider={provider} mode={mode} apply={args.apply}")
 
     id_filter = []
     if args.ids:
@@ -899,6 +940,12 @@ def process(args) -> int:
             stats["skipped"] += 1
             continue
 
+        if args.classify_only:
+            log(f"{prefix} EMPTY {empty_reason}")
+            stats["dry"] += 1
+            append_jsonl(Path(args.log_file), {"ts": utc_now(), "id": post["id"], "status": "empty", "empty_reason": empty_reason, "title": post["title"]})
+            continue
+
         try:
             generated = generate_fields(provider, post, args, whatsapp)
         except Exception as e:
@@ -946,7 +993,13 @@ def process(args) -> int:
         save_progress(Path(args.progress), progress)
         sleep_delay(args.llm_delay)
 
+    errors = []
+    failed_map = progress.get("failed") or {}
+    for pid, info in list(failed_map.items())[:20]:
+        errors.append(f"id={pid}: {info.get('error') or info.get('code') or info}")
+    write_report(Path(args.report), stats, errors, provider, mode, args.apply)
     log("done " + json.dumps(stats))
+    log("report " + args.report)
     return 0 if stats["failed"] == 0 else 1
 
 
@@ -973,10 +1026,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--wp-delay", type=float, default=0.35)
     p.add_argument("--progress", default=str(DEFAULT_PROGRESS))
     p.add_argument("--log-file", default=str(DEFAULT_LOG))
+    p.add_argument("--report", default=str(ROOT / "docs" / "kayan-fill-report.md"))
     p.add_argument("--resume", action="store_true", help="Skip IDs already in the progress file.")
     p.add_argument("--inspect-keys", action="store_true")
     p.add_argument("--print-map", action="store_true")
     p.add_argument("--dump-payload", action="store_true")
+    p.add_argument("--classify-only", action="store_true", help="List empty vs filled posts without calling an LLM.")
     p.add_argument("--self-test", action="store_true", help="Generate one offline payload and exit.")
     return p
 
@@ -1003,6 +1058,8 @@ def self_test() -> int:
     assert meta["post__call_section__data"]["call_section_phone"] == ""
     assert meta["post__call_section__data"]["call_section_whatsapp"] == WHATSAPP_DEFAULT
     assert "البريمي" in meta["post__call_section__data"]["call_section_content"]
+    assert all(r["value"] == "يُحدد بعد المعاينة" for r in gen["prices"])
+    assert not re.search(r"\d", json.dumps(gen["prices"], ensure_ascii=False))
     log("self-test ok")
     log(json.dumps({
         "features_title": gen["features_title"],
