@@ -366,6 +366,9 @@ def classify_public_empty(posts: list[dict], workers: int = 8) -> dict[int, tupl
             if done % 50 == 0 or done == len(posts):
                 log(f"classified public HTML {done}/{len(posts)}")
     return out
+
+
+def unpack_post(item: dict) -> dict:
     title = item.get("title") or {}
     content = item.get("content") or {}
     title_txt = title.get("raw") or strip_html(title.get("rendered") or "")
@@ -918,7 +921,21 @@ def process(args) -> int:
         id_filter.append(int(args.post_id))
     id_filter = list(dict.fromkeys(id_filter))
 
-    posts_raw = fetch_posts(wp, args.wp_delay, only_ids=id_filter or None)
+    posts_raw = []
+    cache_path = Path(args.posts_cache) if args.posts_cache else None
+    if cache_path and cache_path.is_file() and not id_filter:
+        try:
+            cached = json.loads(cache_path.read_text(encoding="utf-8"))
+            if isinstance(cached, list) and cached:
+                posts_raw = cached
+                log(f"loaded posts cache {cache_path} n={len(posts_raw)}")
+        except json.JSONDecodeError:
+            posts_raw = []
+    if not posts_raw:
+        posts_raw = fetch_posts(wp, args.wp_delay, only_ids=id_filter or None)
+        if cache_path and not id_filter:
+            cache_path.write_text(json.dumps(posts_raw, ensure_ascii=False), encoding="utf-8")
+            log(f"wrote posts cache {cache_path} n={len(posts_raw)}")
     posts = [unpack_post(p) for p in posts_raw]
     posts.sort(key=lambda p: p["id"])
     if args.offset:
@@ -1066,7 +1083,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--inspect-keys", action="store_true")
     p.add_argument("--print-map", action="store_true")
     p.add_argument("--dump-payload", action="store_true")
-    p.add_argument("--classify-only", action="store_true", help="List empty vs filled posts without calling an LLM.")
+    p.add_argument("--posts-cache", default="/tmp/kayan-posts-cache.json", help="JSON cache of WP post list.")
     p.add_argument("--self-test", action="store_true", help="Generate one offline payload and exit.")
     return p
 
