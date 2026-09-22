@@ -312,30 +312,60 @@ def fetch_posts(wp: WP, delay: float, only_ids: list[int] | None = None) -> list
         return items
     items: list[dict] = []
     page = 1
+    per_page = 20
     while True:
-        code, data, hdrs = wp.get(
-            "/wp/v2/posts",
-            status="publish",
-            per_page=100,
-            page=page,
-            context="edit",
-            _fields="id,slug,link,title,content,status",
-        )
-        if code == 400 and page > 1:
-            break
+        code, data, hdrs = (0, None, {})
+        last_err = ""
+        for attempt in range(1, 6):
+            code, data, hdrs = wp.get(
+                "/wp/v2/posts",
+                status="publish",
+                per_page=per_page,
+                page=page,
+                context="view",
+                _fields="id,slug,link,title",
+            )
+            if code == 200 and isinstance(data, list):
+                break
+            last_err = str(data)[:240]
+            log(f"fetch page {page} attempt {attempt} code={code} {last_err}")
+            if code == 400 and page > 1:
+                return items
+            sleep_delay(min(20, delay + 2 ** attempt))
         if code != 200 or not isinstance(data, list):
-            raise SystemExit(f"fetch posts failed page={page} code={code} {str(data)[:240]}")
+            raise SystemExit(f"fetch posts failed page={page} code={code} {last_err}")
         items.extend(data)
         total_pages = int(hdrs.get("X-WP-TotalPages") or hdrs.get("x-wp-totalpages") or page)
         log(f"fetched /wp/v2/posts page {page}/{total_pages} (+{len(data)}) total {len(items)}")
         if page >= total_pages or not data:
             break
         page += 1
-        sleep_delay(delay)
+        sleep_delay(max(delay, 0.25))
     return items
 
 
-def unpack_post(item: dict) -> dict:
+def classify_public_empty(posts: list[dict], workers: int = 8) -> dict[int, tuple[bool, str]]:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def check(post: dict) -> tuple[int, bool, str]:
+        if not post.get("link"):
+            return post["id"], True, "no-link"
+        _st, html = fetch_public(post["link"], timeout=45)
+        empty = public_is_empty(html)
+        reason = "public-leftover-shortcodes" if empty else "public-expanded"
+        return post["id"], empty, reason
+
+    out: dict[int, tuple[bool, str]] = {}
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futs = [pool.submit(check, p) for p in posts]
+        done = 0
+        for fut in as_completed(futs):
+            pid, empty, reason = fut.result()
+            out[pid] = (empty, reason)
+            done += 1
+            if done % 50 == 0 or done == len(posts):
+                log(f"classified public HTML {done}/{len(posts)}")
+    return out
     title = item.get("title") or {}
     content = item.get("content") or {}
     title_txt = title.get("raw") or strip_html(title.get("rendered") or "")
@@ -361,7 +391,7 @@ def unpack_post(item: dict) -> dict:
         "city": city,
         "city_ar": city_ar or "عُمان",
         "service_ar": service_label(title_txt, city_ar),
-        "has_shortcodes": bool(re.search(r"\[post_(features|steps|prices|services|call)\]", raw)),
+        "has_shortcodes": bool(re.search(r"\[post_(features|steps|prices|services|call)\]", raw)) or not raw,
     }
 
 
@@ -903,6 +933,10 @@ def process(args) -> int:
         admin = Admin(args.base, user, os.environ["WP_ADMIN_PASSWORD"])
         admin.login()
 
+    public_status: dict[int, tuple[bool, str]] = {}
+    if args.empty_only and not args.force:
+        public_status = classify_public_empty(posts, workers=8)
+
     stats = {"queued": len(posts), "updated": 0, "skipped": 0, "failed": 0, "dry": 0}
 
     for i, post in enumerate(posts, 1):
@@ -920,8 +954,9 @@ def process(args) -> int:
         empty = True
         empty_reason = "assume-empty"
         if args.empty_only and not args.force:
-            if post["link"]:
-                sleep_delay(args.wp_delay)
+            if post["id"] in public_status:
+                empty, empty_reason = public_status[post["id"]]
+            elif post["link"]:
                 _st, html = fetch_public(post["link"])
                 empty = public_is_empty(html)
                 empty_reason = "public-leftover-shortcodes" if empty else "public-expanded"
