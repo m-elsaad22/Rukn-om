@@ -1083,6 +1083,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--inspect-keys", action="store_true")
     p.add_argument("--print-map", action="store_true")
     p.add_argument("--dump-payload", action="store_true")
+    p.add_argument("--classify-only", action="store_true", help="List empty vs filled posts without calling an LLM.")
     p.add_argument("--posts-cache", default="/tmp/kayan-posts-cache.json", help="JSON cache of WP post list.")
     p.add_argument("--self-test", action="store_true", help="Generate one offline payload and exit.")
     return p
