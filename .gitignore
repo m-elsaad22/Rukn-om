@@ -1,0 +1,3 @@
+plugins/*.zip
+__pycache__/
+*.pyc
