@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 2.0.4
+ * Version: 2.0.5
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -38,7 +38,7 @@ final class Rukn_Oman_SEO
         add_action('init', [__CLASS__, 'bind_post_taxonomies'], 40);
         add_filter('request', [__CLASS__, 'filter_request']);
         add_action('template_redirect', [__CLASS__, 'early_routes'], -1);
-        add_action('template_redirect', [__CLASS__, 'buffer_start'], 1);
+        add_action('template_redirect', [__CLASS__, 'buffer_start'], -999);
         add_filter('the_title', [__CLASS__, 'english_title'], 10, 2);
         add_filter('the_content', [__CLASS__, 'english_content'], 7);
         add_filter('the_content', [__CLASS__, 'single_h1'], 8);
@@ -621,9 +621,18 @@ final class Rukn_Oman_SEO
 
     public static function buffer_start()
     {
-        if (is_admin() || wp_doing_ajax()) {
+        if (is_admin() || wp_doing_ajax() || (defined('WP_CLI') && WP_CLI)) {
             return;
         }
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        if (strpos($uri, '/wp-json/') !== false || isset($_GET['rest_route'])) {
+            return;
+        }
+        static $started = false;
+        if ($started) {
+            return;
+        }
+        $started = true;
         ob_start([__CLASS__, 'buffer_end']);
     }
 
@@ -693,6 +702,7 @@ final class Rukn_Oman_SEO
         if (class_exists('Rukn_Oman_Frontend')) {
             $html = Rukn_Oman_Frontend::rewrite($html);
         }
+        $html = str_replace(',}</script>', '}</script>', $html);
         return $html;
     }
 
@@ -884,6 +894,7 @@ add_action('plugins_loaded', ['Rukn_Oman_SEO', 'init']);
 if (did_action('plugins_loaded')) {
     Rukn_Oman_SEO::init();
 }
+Rukn_Oman_SEO::buffer_start();
 if (function_exists('register_activation_hook')) {
     register_activation_hook(__FILE__, ['Rukn_Oman_SEO', 'activate']);
 }

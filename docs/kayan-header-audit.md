@@ -72,7 +72,10 @@ nav.menu a{color:inherit}
 
 ## ما الذي أُصلح في 2.0.4
 
-- إزالة الفاصلة الزائدة في JSON-LD لقالب كيان (`"priceRange":"OMR",}`).
 - ترجمة placeholder البحث داخل `data-searching-argums` (Base64) من `Search Now` إلى «ابحث الآن».
 - إعادة تسمية `.uae-svg` في CSS إلى `.oman-svg`.
 - حذف `link rel="preload" as="font"` الفارغ.
+
+## ما الذي أُصلح في 2.0.5
+
+- سكيما كيان تُحقَن في طبقة output buffer خارجية بعد إعادة الكتابة؛ أصبح الـ buffer يبدأ من `plugins_loaded` ويُزيل `,}</script>` في النهاية.
