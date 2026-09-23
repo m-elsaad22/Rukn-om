@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 2.0.5
+ * Version: 2.0.6
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */

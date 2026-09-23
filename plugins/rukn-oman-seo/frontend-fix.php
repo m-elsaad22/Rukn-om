@@ -287,16 +287,30 @@ final class Rukn_Oman_Frontend
             . 'body.rukn-hide-call .cta-button[href^="tel:"],body.rukn-hide-call .hero-buttons a[href^="tel:"]'
             . '{display:none!important;pointer-events:none!important;visibility:hidden!important}'
             . '.uae-svg,.oman-svg{width:100%;max-width:340px}'
-            . 'header#hdr{height:auto;min-height:80px;overflow:visible}'
-            . 'header#hdr .wrap.nav{flex-wrap:nowrap;min-width:0}'
-            . 'header#hdr nav.menu{display:flex;flex-wrap:nowrap;gap:4px 8px;align-items:center;min-width:0;overflow:hidden}'
-            . 'header#hdr nav.menu a{color:#fff!important;font-weight:700;font-size:14.5px;text-decoration:none;white-space:nowrap;padding:8px 10px}'
+            . 'root{display:block!important;width:100%!important;max-width:100%;min-width:0}'
+            . 'body:has(header#hdr) header:not(#hdr),body:has(header#hdr) .--Site--Menu{display:none!important}'
+            . 'header#hdr{position:fixed;top:0;inset-inline:0;left:auto!important;right:auto!important;height:80px;min-height:80px;display:flex;align-items:center;overflow:visible;z-index:1000}'
+            . 'header#hdr .wrap.nav{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;width:100%;min-width:0;gap:12px}'
+            . 'header#hdr a.logo{display:flex;align-items:center;gap:10px;font-family:Cairo,Tajawal,sans-serif;font-weight:900;font-size:22px;color:#fff;text-decoration:none;white-space:nowrap}'
+            . 'header#hdr a.logo .kayan-logo-img,header#hdr a.logo>img{display:none!important}'
+            . 'header#hdr a.logo .mark{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,#2980D4,#2E9DF7);display:grid;place-items:center;color:#fff;flex:none;overflow:hidden;box-shadow:0 16px 48px rgba(46,157,247,.28)}'
+            . 'header#hdr a.logo .mark img{display:block!important;width:28px;height:28px;object-fit:contain}'
+            . 'header#hdr a.logo b{color:var(--aqua,#4FA8FF)}'
+            . 'header#hdr.scrolled a.logo{color:var(--navy,#0A1F4E)}'
+            . 'header#hdr.scrolled a.logo b{color:var(--turq,#2E9DF7)}'
+            . 'header#hdr nav.menu{display:flex;flex-wrap:nowrap;gap:4px 6px;align-items:center;min-width:0;overflow:hidden}'
+            . 'header#hdr nav.menu a{color:#fff!important;font-family:Cairo,Tajawal,sans-serif;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap;padding:8px 12px;border-radius:10px}'
             . 'header#hdr.scrolled nav.menu a{color:var(--navy,#0A1F4E)!important}'
             . 'header#hdr nav.menu a:hover{color:#fff;background:rgba(255,255,255,.14)}'
-            . '@media(max-width:1200px){header#hdr nav.menu,header#hdr .nav-cta>a.btn{display:none!important}header#hdr .ham{display:flex!important}}'
+            . 'header#hdr.scrolled nav.menu a:hover{color:var(--turq,#2E9DF7);background:rgba(46,157,247,.10)}'
+            . '@media(max-width:1024px){header#hdr nav.menu,header#hdr .nav-cta>a.btn{display:none!important}header#hdr .ham{display:flex!important}}'
+            . '#loader{animation:ruknLoaderAutoHide .01s linear 1.1s forwards}'
+            . '#loader.out{opacity:0;visibility:hidden;pointer-events:none}'
+            . '@keyframes ruknLoaderAutoHide{to{opacity:0;visibility:hidden;pointer-events:none}}'
             . '#ruknMob .rukn-mob-links{display:flex;flex-direction:column;gap:6px;margin:12px 0 8px}'
             . '#ruknMob .rukn-mob-links a{font-weight:800;color:#fff!important;text-decoration:none;padding:14px 10px;border-bottom:1px solid rgba(255,255,255,.12)}'
             . '</style>' . "\n";
+        echo '<noscript><style>#loader{display:none!important}</style></noscript>' . "\n";
         echo '<script>window.RuknCS=Object.assign(window.RuknCS||{},{call_show:false,wa_show:true,call_number:"",wa_number:"' . self::WA . '"});</script>' . "\n";
     }
 
@@ -305,24 +319,29 @@ final class Rukn_Oman_Frontend
         $wa = self::WA;
         echo '<script id="rukn-hide-call-js">(function(){window.RuknCS=Object.assign(window.RuknCS||{},{call_show:false,wa_show:true,call_number:"",wa_number:"' . $wa . '"});'
             . 'function hide(root){root=root&&root.querySelectorAll?root:document;root.querySelectorAll(\'a[href^="tel:"],.btn-call,.fab-call,.fab-btn.fab-call,.--button-call-link-phone,.-callbutton--post-card,[data-rukn-call],a[data-call="phone"],a[data-call="Phone"]\').forEach(function(el){el.remove()});}'
-            . 'function run(){hide(document);}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",run);}else{run();}'
-            . 'if(window.MutationObserver){new MutationObserver(function(){hide(document)}).observe(document.documentElement,{childList:true,subtree:true});}'
             . 'function fillMob(){var mob=document.getElementById("ruknMob");var menu=document.querySelector("header#hdr nav.menu");if(!mob||!menu||mob.querySelector(".rukn-mob-links"))return;var box=document.createElement("div");box.className="rukn-mob-links";box.innerHTML=menu.innerHTML;var close=mob.querySelector(".mob-close");if(close&&close.nextSibling){mob.insertBefore(box,close.nextSibling);}else{mob.insertBefore(box,mob.firstChild);}}'
-            . 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",fillMob);}else{fillMob();}'
+            . 'function freezeCount(){document.querySelectorAll("[data-count]").forEach(function(el){var n=el.getAttribute("data-count");if(!n)return;var s=el.getAttribute("data-suffix")||"";el.textContent=n+s;});}'
+            . 'function hideLoader(){var l=document.getElementById("loader");if(!l||l.classList.contains("out"))return;l.classList.add("out");l.setAttribute("aria-hidden","true");}'
+            . 'function runAll(){hide(document);fillMob();freezeCount();hideLoader();}'
+            . 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",runAll);}else{runAll();}'
+            . 'if(window.MutationObserver){new MutationObserver(function(){hide(document);freezeCount();}).observe(document.documentElement,{childList:true,subtree:true});}'
+            . 'window.addEventListener("load",function(){setTimeout(hideLoader,400);freezeCount();});'
+            . 'setTimeout(hideLoader,900);'
             . '})();</script>' . "\n";
     }
 
     public static function menu_items($mobile = false)
     {
-        $home = home_url('/');
         $items = [
-            ['الرئيسية', $home],
-            ['خدماتنا', home_url('/our-services/')],
+            ['الخدمات', home_url('/our-services/')],
             ['المدن', home_url('/cities/')],
+            ['المشاريع', home_url('/portfolio/')],
             ['من نحن', home_url('/about/')],
-            ['الأسئلة الشائعة', home_url('/faq/')],
+            ['الأسئلة', home_url('/faq/')],
         ];
         if ($mobile) {
+            $items[] = ['تقييمات', home_url('/reviews/')];
+            $items[] = ['تواصل', home_url('/contact/')];
             $items[] = ['خريطة الموقع', home_url('/html-sitemap/')];
         }
         return $items;
@@ -360,6 +379,28 @@ final class Rukn_Oman_Frontend
         $html = preg_replace('/href=["\'][^"\']*\/page\/2\/["\']/', 'href="' . esc_url($home) . '"', $html);
 
         $html = preg_replace('/<nav class="menu">(?:.*?)<\/nav>/s', '<nav class="menu">' . self::nav_html() . '</nav>', $html, 1);
+
+        $logo_icon = esc_url(home_url('/wp-content/uploads/2026/09/logo-icon.webp'));
+        $logo = '<a href="' . esc_url($home) . '" class="logo" title="ركن التطور عُمان">'
+            . '<span class="mark"><img src="' . $logo_icon . '" alt="" width="28" height="28" decoding="async"></span>'
+            . 'ركن <b>التطور</b></a>';
+        $html = preg_replace('/<a\b[^>]*class="logo[^"]*"[^>]*>.*?<\/a>/s', $logo, $html, 1);
+
+        $html = str_replace('<div class="ld-logo">ركن التطور عُمان</div>', '<div class="ld-logo">ركن <span>التطور</span></div>', $html);
+        $html = preg_replace(
+            '/<script>\(function\(\)\{function hide\(\)\{var l=document\.getElementById\("loader"\);[\s\S]*?setTimeout\(hide,1800\);\}\)\(\);<\/script>/',
+            '<script>(function(){function hide(){var l=document.getElementById("loader");if(!l||l.classList.contains("out"))return;l.classList.add("out");l.setAttribute("aria-hidden","true");}if(document.readyState==="complete"){hide();}else{window.addEventListener("load",function(){setTimeout(hide,400);});}setTimeout(hide,900);})();</script>',
+            $html,
+            1
+        );
+
+        if (get_option('rukn_oman_icons_mirrored') === '1') {
+            $html = preg_replace(
+                '#https?://(www\.)?rukn-eltatawer\.com/(?!om/)wp-content/uploads/icon/#i',
+                rtrim(home_url('/wp-content/uploads/icon/'), '/') . '/',
+                $html
+            );
+        }
         $html = preg_replace('/"currency"\s*:\s*"AED"/', '"currency":"OMR"', $html);
         $html = preg_replace('/"priceRange"\s*:\s*"AED"/', '"priceRange":"OMR"', $html);
         $html = str_replace('data-currency="AED"', 'data-currency="OMR"', $html);
@@ -423,14 +464,14 @@ final class Rukn_Oman_Frontend
         );
 
         $html = preg_replace_callback(
-            '/<(b|div)([^>]*data-count="([^"]+)"[^>]*)>0(<\/\1>)/i',
+            '/<(b|div)([^>]*data-count="([^"]+)"[^>]*)>(?:.*?)<\/\1>/i',
             static function ($m) {
                 $n = $m[3];
                 $suffix = '';
                 if (preg_match('/data-suffix="([^"]*)"/', $m[2], $s)) {
                     $suffix = $s[1];
                 }
-                return '<' . $m[1] . $m[2] . '>' . $n . $suffix . $m[4];
+                return '<' . $m[1] . $m[2] . '>' . $n . $suffix . '</' . $m[1] . '>';
             },
             $html
         );
@@ -519,15 +560,35 @@ final class Rukn_Oman_Frontend
             );
         }
 
-        $footer = '<footer><div class="wrap"><div class="fgrid"><div class="fcol">'
-            . '<div class="flogo-wrap"><a href="' . esc_url($home) . '" class="flogo" title="ركن التطور عُمان">'
-            . '<span class="mark"><i class="fas fa-shield-halved"></i></span>ركن التطور عُمان</a></div>'
+        $footer = '<footer><div class="wrap"><div class="fgrid">'
+            . '<div class="fcol"><div class="flogo-wrap"><a href="' . esc_url($home) . '" class="flogo" title="ركن التطور عُمان">'
+            . '<span class="mark"><i class="fas fa-shield-halved"></i></span>ركن <b>التطور</b></a></div>'
+            . '<p>منصة الخدمات المنزلية المتكاملة في سلطنة عُمان — معاينة ثم عرض مكتوب بالريال العُماني.</p>'
             . '<div class="fcontact"><a href="' . esc_url($wa) . '" target="_blank" rel="nofollow noopener noreferrer">'
-            . '<i class="fab fa-whatsapp"></i> تواصل عبر واتساب</a></div></div><div class="fcol"><h4>روابط سريعة</h4><ul>'
+            . '<i class="fab fa-whatsapp"></i> تواصل عبر واتساب</a>'
+            . '<a href="' . esc_url($contact) . '"><i class="fas fa-location-dot"></i> مسقط، سلطنة عُمان</a></div></div>'
+            . '<div class="fcol"><h4>الخدمات</h4><ul>'
+            . '<li><a href="' . esc_url(home_url('/services/water-leak-detection/')) . '"><i class="fas fa-chevron-left"></i> كشف تسربات المياه</a></li>'
+            . '<li><a href="' . esc_url(home_url('/services/roof-insulation/')) . '"><i class="fas fa-chevron-left"></i> عزل الأسطح</a></li>'
+            . '<li><a href="' . esc_url(home_url('/services/ac-install-maintenance/')) . '"><i class="fas fa-chevron-left"></i> صيانة التكييف</a></li>'
+            . '<li><a href="' . esc_url(home_url('/services/cleaning-sterilization/')) . '"><i class="fas fa-chevron-left"></i> التنظيف والتعقيم</a></li>'
+            . '<li><a href="' . esc_url(home_url('/services/plumbing/')) . '"><i class="fas fa-chevron-left"></i> أعمال السباكة</a></li>'
+            . '<li><a href="' . esc_url(home_url('/services/pest-control/')) . '"><i class="fas fa-chevron-left"></i> مكافحة الحشرات</a></li>'
+            . '</ul></div>'
+            . '<div class="fcol"><h4>المدن</h4><ul>'
+            . '<li><a href="' . esc_url(home_url('/city/muscat/')) . '"><i class="fas fa-chevron-left"></i> مسقط</a></li>'
+            . '<li><a href="' . esc_url(home_url('/city/salalah/')) . '"><i class="fas fa-chevron-left"></i> صلالة</a></li>'
+            . '<li><a href="' . esc_url(home_url('/city/nizwa/')) . '"><i class="fas fa-chevron-left"></i> نزوى</a></li>'
+            . '<li><a href="' . esc_url(home_url('/city/sohar/')) . '"><i class="fas fa-chevron-left"></i> صحار</a></li>'
+            . '<li><a href="' . esc_url(home_url('/city/sur/')) . '"><i class="fas fa-chevron-left"></i> صور</a></li>'
+            . '<li><a href="' . esc_url(home_url('/cities/')) . '"><i class="fas fa-chevron-left"></i> كل المدن</a></li>'
+            . '</ul></div>'
+            . '<div class="fcol"><h4>روابط سريعة</h4><ul>'
             . '<li><a href="' . esc_url($home) . '"><i class="fas fa-chevron-left"></i> الرئيسية</a></li>'
-            . '<li><a href="' . esc_url(home_url('/our-services/')) . '"><i class="fas fa-chevron-left"></i> خدماتنا</a></li>'
-            . '<li><a href="' . esc_url(home_url('/cities/')) . '"><i class="fas fa-chevron-left"></i> المدن</a></li>'
-            . '<li><a href="' . esc_url($contact) . '"><i class="fas fa-chevron-left"></i> تواصل واتساب</a></li>'
+            . '<li><a href="' . esc_url(home_url('/our-services/')) . '"><i class="fas fa-chevron-left"></i> الخدمات</a></li>'
+            . '<li><a href="' . esc_url(home_url('/portfolio/')) . '"><i class="fas fa-chevron-left"></i> المشاريع</a></li>'
+            . '<li><a href="' . esc_url(home_url('/about/')) . '"><i class="fas fa-chevron-left"></i> من نحن</a></li>'
+            . '<li><a href="' . esc_url(home_url('/faq/')) . '"><i class="fas fa-chevron-left"></i> الأسئلة</a></li>'
             . '<li><a href="' . esc_url($sitemap) . '"><i class="fas fa-chevron-left"></i> خريطة الموقع</a></li>'
             . '</ul><a href="' . esc_url($wa) . '" target="_blank" rel="nofollow noopener noreferrer" class="btn btn-quote" style="margin-top:6px">'
             . '<i class="fab fa-whatsapp"></i> واتساب</a></div></div></div>'
@@ -552,6 +613,58 @@ final class Rukn_Oman_Frontend
         $html = str_replace('لا نسعّر عبر الهاتف', 'لا نسعّر عبر الرسائل النصية دون معاينة', $html);
 
         return $html;
+    }
+
+    public static function maybe_mirror_icons()
+    {
+        if (is_admin() || get_option('rukn_oman_icons_mirrored') === '1') {
+            return;
+        }
+        $names = [
+            'building-maintenance.png',
+            'cleaning-services.png',
+            'decoration-services.png',
+            'electrical-appliance-repair.png',
+            'fast-response.png',
+            'insulation-services.png',
+            'landscaping-services.png',
+            'lifetime-warranty.png',
+            'location1.png',
+            'pest-control.png',
+            'plumbing-services.png',
+            'price.png',
+            'search.png',
+            'setting.png',
+            'skilled-technicians.png',
+            'tab.png',
+            'water-leak-detection.png',
+            'whatsapp.png',
+        ];
+        $dir = WP_CONTENT_DIR . '/uploads/icon';
+        if (!wp_mkdir_p($dir)) {
+            return;
+        }
+        $ok = 0;
+        $ctx = stream_context_create([
+            'http' => ['timeout' => 12, 'header' => "User-Agent: RuknOman/1.0\r\n"],
+            'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
+        ]);
+        foreach ($names as $name) {
+            $dest = $dir . '/' . $name;
+            if (is_file($dest) && filesize($dest) > 80) {
+                $ok++;
+                continue;
+            }
+            $src = 'https://www.rukn-eltatawer.com/wp-content/uploads/icon/' . $name;
+            $raw = @file_get_contents($src, false, $ctx);
+            if (is_string($raw) && strlen($raw) > 80) {
+                file_put_contents($dest, $raw);
+                $ok++;
+            }
+        }
+        if ($ok >= 12) {
+            update_option('rukn_oman_icons_mirrored', '1', false);
+        }
     }
 }
 

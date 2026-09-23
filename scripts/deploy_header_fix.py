@@ -80,7 +80,19 @@ foreach ($files as $name => $b64) {
         file_put_contents($dir . '/' . $name, $raw);
     }
 }
-update_option('rukn_oman_plugin_files', '2.0.5');
+$icon_dir = WP_CONTENT_DIR . '/uploads/icon';
+if (wp_mkdir_p($icon_dir)) {
+    $icons = ['building-maintenance.png','cleaning-services.png','decoration-services.png','electrical-appliance-repair.png','fast-response.png','insulation-services.png','landscaping-services.png','lifetime-warranty.png','location1.png','pest-control.png','plumbing-services.png','price.png','search.png','setting.png','skilled-technicians.png','tab.png','water-leak-detection.png','whatsapp.png'];
+    $ok = 0;
+    foreach ($icons as $name) {
+        $dest = $icon_dir . '/' . $name;
+        if (is_file($dest) && filesize($dest) > 80) { $ok++; continue; }
+        $raw = @file_get_contents('https://www.rukn-eltatawer.com/wp-content/uploads/icon/' . $name);
+        if (is_string($raw) && strlen($raw) > 80) { file_put_contents($dest, $raw); $ok++; }
+    }
+    if ($ok >= 12) { update_option('rukn_oman_icons_mirrored', '1'); }
+}
+update_option('rukn_oman_plugin_files', '2.0.6');
 if (function_exists('do_action')) {
     do_action('litespeed_purging_all');
     do_action('litespeed_purge_all');
@@ -88,7 +100,7 @@ if (function_exists('do_action')) {
 """
     payload = {
         "name": "Rukn Oman plugin writer",
-        "desc": "Writes rukn-oman-seo plugin files (header 2.0.5).",
+        "desc": "Writes rukn-oman-seo plugin files (header 2.0.6).",
         "code": php.strip(),
         "scope": "global",
         "active": True,
@@ -117,7 +129,7 @@ if (function_exists('do_action')) {
             print("hit home", resp.status, flush=True)
     except Exception as e:
         print("hit home err", e, flush=True)
-    print("deployed 2.0.5", flush=True)
+    print("deployed 2.0.6", flush=True)
     return 0
 
 
