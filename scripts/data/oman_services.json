@@ -1,0 +1,1032 @@
+[
+  {
+    "svc": "24h-emergency-electrician",
+    "name_ar": "شركة كهربائي طوارئ 24 ساعة",
+    "n": 8
+  },
+  {
+    "svc": "ac-cleaning-washing",
+    "name_ar": "شركة غسيل وتنظيف مكيفات",
+    "n": 8
+  },
+  {
+    "svc": "ac-duct-maintenance",
+    "name_ar": "شركة صيانة دكتات التكييف",
+    "n": 8
+  },
+  {
+    "svc": "ac-freon-refill",
+    "name_ar": "شركة تعبئة فريون مكيفات",
+    "n": 8
+  },
+  {
+    "svc": "ac-leak-detection",
+    "name_ar": "شركة كشف تسربات التكييف",
+    "n": 8
+  },
+  {
+    "svc": "ac-periodic-maintenance-contracts",
+    "name_ar": "شركة عقود صيانة تكييف دورية",
+    "n": 8
+  },
+  {
+    "svc": "ac-relocation-installation",
+    "name_ar": "شركة نقل وتركيب مكيفات",
+    "n": 8
+  },
+  {
+    "svc": "ac-tech",
+    "name_ar": "فني تركيب وصيانة تكييف",
+    "n": 8
+  },
+  {
+    "svc": "air-freight",
+    "name_ar": "شركة شحن دولي جوي",
+    "n": 8
+  },
+  {
+    "svc": "air-purification",
+    "name_ar": "شركة تركيب وصيانة أنظمة تنقية الهواء",
+    "n": 8
+  },
+  {
+    "svc": "annex-building",
+    "name_ar": "شركة بناء ملاحق",
+    "n": 8
+  },
+  {
+    "svc": "ant-control",
+    "name_ar": "شركة مكافحة النمل الأسود والأحمر",
+    "n": 8
+  },
+  {
+    "svc": "apartment-cleaning",
+    "name_ar": "شركة تنظيف شقق",
+    "n": 8
+  },
+  {
+    "svc": "apartment-painting",
+    "name_ar": "شركة دهان شقق",
+    "n": 8
+  },
+  {
+    "svc": "appliance-maintenance",
+    "name_ar": "شركة صيانة الأجهزة الكهربائية",
+    "n": 8
+  },
+  {
+    "svc": "artificial-grass",
+    "name_ar": "شركة تركيب عشب صناعي",
+    "n": 8
+  },
+  {
+    "svc": "artificial-waterfall",
+    "name_ar": "شركة تركيب شلالات اصطناعية",
+    "n": 8
+  },
+  {
+    "svc": "automatic-doors-maintenance",
+    "name_ar": "شركة صيانة أبواب أوتوماتيكية",
+    "n": 8
+  },
+  {
+    "svc": "automatic-irrigation",
+    "name_ar": "شركة تركيب شبكات ري أوتوماتيكية",
+    "n": 8
+  },
+  {
+    "svc": "bathroom-cleaning",
+    "name_ar": "شركة تنظيف حمامات",
+    "n": 8
+  },
+  {
+    "svc": "bathroom-insulation",
+    "name_ar": "شركة عزل حمامات",
+    "n": 8
+  },
+  {
+    "svc": "bathroom-renovation",
+    "name_ar": "شركة ترميم حمامات",
+    "n": 8
+  },
+  {
+    "svc": "bed-bug-control",
+    "name_ar": "شركة مكافحة بق الفراش",
+    "n": 8
+  },
+  {
+    "svc": "bird-control",
+    "name_ar": "شركة مكافحة الطيور",
+    "n": 8
+  },
+  {
+    "svc": "bird-sound-device",
+    "name_ar": "شركة تركيب أجهزة صوتية لطرد الطيور",
+    "n": 8
+  },
+  {
+    "svc": "blacksmith-doors-windows",
+    "name_ar": "حداد أبواب ونوافذ",
+    "n": 8
+  },
+  {
+    "svc": "block-fences",
+    "name_ar": "شركة بناء أسوار طابوق",
+    "n": 8
+  },
+  {
+    "svc": "brickwork",
+    "name_ar": "شركة تركيب طابوق",
+    "n": 8
+  },
+  {
+    "svc": "building-maintenance",
+    "name_ar": "شركة صيانة مباني",
+    "n": 8
+  },
+  {
+    "svc": "building-renovation",
+    "name_ar": "شركة ترميم وصيانة مباني",
+    "n": 8
+  },
+  {
+    "svc": "car-shipping",
+    "name_ar": "شركة شحن سيارات",
+    "n": 8
+  },
+  {
+    "svc": "cargo-shipping",
+    "name_ar": "شركة شحن بضائع",
+    "n": 8
+  },
+  {
+    "svc": "carpenter",
+    "name_ar": "نجار أثاث",
+    "n": 8
+  },
+  {
+    "svc": "carpet-cleaning",
+    "name_ar": "شركة تنظيف سجاد",
+    "n": 8
+  },
+  {
+    "svc": "cctv-maintenance",
+    "name_ar": "شركة صيانة كاميرات مراقبة",
+    "n": 8
+  },
+  {
+    "svc": "cctv-tech",
+    "name_ar": "فني تركيب كاميرات مراقبة",
+    "n": 8
+  },
+  {
+    "svc": "central-ac-maintenance",
+    "name_ar": "شركة صيانة تكييف مركزي",
+    "n": 8
+  },
+  {
+    "svc": "central-heater-installation-maintenance",
+    "name_ar": "شركة تركيب وصيانة سخانات مركزية",
+    "n": 8
+  },
+  {
+    "svc": "ceramic-porcelain",
+    "name_ar": "شركة تركيب سيراميك وبورسلين",
+    "n": 8
+  },
+  {
+    "svc": "chimney-cleaning",
+    "name_ar": "شركة تنظيف المداخن والشفاطات",
+    "n": 8
+  },
+  {
+    "svc": "chlorine-disinfection",
+    "name_ar": "شركة التعقيم بالكلور",
+    "n": 8
+  },
+  {
+    "svc": "cockroach-control",
+    "name_ar": "شركة مكافحة الصراصير",
+    "n": 8
+  },
+  {
+    "svc": "commercial-refrigeration-maintenance",
+    "name_ar": "شركة صيانة ثلاجات وتبريد تجاري",
+    "n": 8
+  },
+  {
+    "svc": "cooling-fault-detection",
+    "name_ar": "شركة كشف أعطال تبريد",
+    "n": 8
+  },
+  {
+    "svc": "crack-repair",
+    "name_ar": "شركة إصلاح تشققات الأسقف والجدران",
+    "n": 8
+  },
+  {
+    "svc": "crawling-pest-control",
+    "name_ar": "شركة مكافحة الحشرات الزاحفة",
+    "n": 8
+  },
+  {
+    "svc": "curtain-cleaning",
+    "name_ar": "شركة تنظيف ستائر",
+    "n": 8
+  },
+  {
+    "svc": "decor-design",
+    "name_ar": "شركة تصميم وتنفيذ ديكورات",
+    "n": 8
+  },
+  {
+    "svc": "decorative-wall-effects",
+    "name_ar": "شركة دهانات ديكورية وتأثيرات جدارية",
+    "n": 8
+  },
+  {
+    "svc": "deep-cleaning",
+    "name_ar": "شركة تنظيف وتعقيم شامل",
+    "n": 8
+  },
+  {
+    "svc": "diesel-tank-cleaning",
+    "name_ar": "شركة تنظيف خزانات ديزل",
+    "n": 8
+  },
+  {
+    "svc": "domestic-shipping",
+    "name_ar": "شركة شحن داخلي داخل",
+    "n": 8
+  },
+  {
+    "svc": "doors-installation",
+    "name_ar": "شركة تركيب أبواب",
+    "n": 8
+  },
+  {
+    "svc": "drain-unclogging",
+    "name_ar": "شركة تسليك مجاري",
+    "n": 8
+  },
+  {
+    "svc": "drainage-pipe-maintenance",
+    "name_ar": "شركة صيانة مواسير صرف صحي",
+    "n": 8
+  },
+  {
+    "svc": "dryer-maintenance",
+    "name_ar": "شركة صيانة نشافات",
+    "n": 8
+  },
+  {
+    "svc": "duct-cleaning",
+    "name_ar": "شركة تنظيف وصيانة دكتات المكيفات",
+    "n": 8
+  },
+  {
+    "svc": "electric-panel-maintenance",
+    "name_ar": "شركة صيانة لوحات كهرباء",
+    "n": 8
+  },
+  {
+    "svc": "electric-spray-painting",
+    "name_ar": "شركة رش بويات كهربائي",
+    "n": 8
+  },
+  {
+    "svc": "electrical-fault-detection",
+    "name_ar": "شركة كشف أعطال كهرباء",
+    "n": 8
+  },
+  {
+    "svc": "electrical-maintenance",
+    "name_ar": "شركة صيانة كهرباء",
+    "n": 8
+  },
+  {
+    "svc": "elevator-maintenance",
+    "name_ar": "شركة صيانة مصاعد",
+    "n": 8
+  },
+  {
+    "svc": "express-parcel-shipping",
+    "name_ar": "شركة شحن طرود سريعة",
+    "n": 8
+  },
+  {
+    "svc": "exterior-facade-painting",
+    "name_ar": "شركة دهان واجهات خارجية",
+    "n": 8
+  },
+  {
+    "svc": "exterior-painting",
+    "name_ar": "شركة دهانات خارجية",
+    "n": 8
+  },
+  {
+    "svc": "false-ceiling",
+    "name_ar": "شركة تركيب أسقف جبسية / فورسيلنج",
+    "n": 8
+  },
+  {
+    "svc": "flea-control",
+    "name_ar": "شركة مكافحة البراغيث",
+    "n": 8
+  },
+  {
+    "svc": "floor-carpeting",
+    "name_ar": "شركة تركيب سجاد أرضيات",
+    "n": 8
+  },
+  {
+    "svc": "flying-pest-control",
+    "name_ar": "شركة مكافحة الحشرات الطائرة",
+    "n": 8
+  },
+  {
+    "svc": "fridge-maintenance",
+    "name_ar": "شركة صيانة ثلاجات",
+    "n": 8
+  },
+  {
+    "svc": "furniture-assembly",
+    "name_ar": "شركة تركيب وفك الأثاث",
+    "n": 8
+  },
+  {
+    "svc": "furniture-moving-packaging",
+    "name_ar": "شركة نقل عفش مع التغليف",
+    "n": 8
+  },
+  {
+    "svc": "furniture-packaging",
+    "name_ar": "شركة تغليف أثاث احترافي",
+    "n": 8
+  },
+  {
+    "svc": "furniture-shipping",
+    "name_ar": "شركة شحن أثاث",
+    "n": 8
+  },
+  {
+    "svc": "furniture-storage",
+    "name_ar": "شركة تخزين أثاث",
+    "n": 8
+  },
+  {
+    "svc": "garage-cleaning",
+    "name_ar": "شركة تنظيف كراجات ومواقف سيارات",
+    "n": 8
+  },
+  {
+    "svc": "garden-cleaning",
+    "name_ar": "شركة تنظيف وتزيين الحدائق",
+    "n": 8
+  },
+  {
+    "svc": "garden-seating",
+    "name_ar": "شركة إنشاء جلسات حدائق",
+    "n": 8
+  },
+  {
+    "svc": "gas-leak-detection",
+    "name_ar": "شركة كشف تسربات الغاز",
+    "n": 8
+  },
+  {
+    "svc": "general-maintenance",
+    "name_ar": "شركة صيانة عامة",
+    "n": 8
+  },
+  {
+    "svc": "glass-alumetal",
+    "name_ar": "شركة تركيب زجاج وألوميتال",
+    "n": 8
+  },
+  {
+    "svc": "glass-aluminium-partitions",
+    "name_ar": "شركة تركيب فواصل زجاجية وألومنيوم",
+    "n": 8
+  },
+  {
+    "svc": "glass-facade-cleaning",
+    "name_ar": "شركة تنظيف واجهات زجاجية",
+    "n": 8
+  },
+  {
+    "svc": "gypsum-board",
+    "name_ar": "شركة تركيب جبس بورد",
+    "n": 8
+  },
+  {
+    "svc": "gypsum-board-decor",
+    "name_ar": "شركة ديكورات جبس بورد",
+    "n": 8
+  },
+  {
+    "svc": "gypsum-tech",
+    "name_ar": "فني جبس بورد",
+    "n": 8
+  },
+  {
+    "svc": "home-audio-tech",
+    "name_ar": "فني أنظمة صوت منزلية",
+    "n": 8
+  },
+  {
+    "svc": "home-cleaning",
+    "name_ar": "شركة تنظيف منازل",
+    "n": 8
+  },
+  {
+    "svc": "home-electrician",
+    "name_ar": "كهربائي منازل",
+    "n": 8
+  },
+  {
+    "svc": "home-electrician-elec",
+    "name_ar": "شركة كهربائي منازل",
+    "n": 8
+  },
+  {
+    "svc": "home-plumber",
+    "name_ar": "سباك منازل",
+    "n": 8
+  },
+  {
+    "svc": "home-plumber-elec",
+    "name_ar": "شركة سباك منازل",
+    "n": 8
+  },
+  {
+    "svc": "hospital-clinic-cleaning",
+    "name_ar": "شركة تنظيف مستشفيات وعيادات",
+    "n": 8
+  },
+  {
+    "svc": "humidity-treatment",
+    "name_ar": "شركة معالجة الرطوبة والعفن",
+    "n": 8
+  },
+  {
+    "svc": "indoor-garden-design",
+    "name_ar": "شركة تصميم حدائق داخلية",
+    "n": 8
+  },
+  {
+    "svc": "indoor-moving",
+    "name_ar": "شركة نقل أثاث داخلي",
+    "n": 8
+  },
+  {
+    "svc": "indoor-outdoor-lighting-installation",
+    "name_ar": "شركة تركيب إنارة داخلية وخارجية",
+    "n": 8
+  },
+  {
+    "svc": "interior-painting",
+    "name_ar": "شركة دهانات داخلية",
+    "n": 8
+  },
+  {
+    "svc": "interlock",
+    "name_ar": "شركة تركيب انترلوك",
+    "n": 8
+  },
+  {
+    "svc": "kerbstone",
+    "name_ar": "شركة تركيب كربستون",
+    "n": 8
+  },
+  {
+    "svc": "kitchen-cleaning",
+    "name_ar": "شركة تنظيف مطابخ",
+    "n": 8
+  },
+  {
+    "svc": "kitchen-hoods",
+    "name_ar": "شركة تركيب وصيانة شفاطات مطابخ",
+    "n": 8
+  },
+  {
+    "svc": "kitchen-installation",
+    "name_ar": "شركة تركيب مطابخ",
+    "n": 8
+  },
+  {
+    "svc": "kitchen-insulation",
+    "name_ar": "شركة عزل مطابخ",
+    "n": 8
+  },
+  {
+    "svc": "kitchen-renovation",
+    "name_ar": "شركة ترميم مطابخ",
+    "n": 8
+  },
+  {
+    "svc": "land-freight",
+    "name_ar": "شركة شحن دولي بري",
+    "n": 8
+  },
+  {
+    "svc": "landscaping",
+    "name_ar": "شركة تنسيق حدائق",
+    "n": 8
+  },
+  {
+    "svc": "lizard-control",
+    "name_ar": "شركة مكافحة الوزغ (البرص)",
+    "n": 8
+  },
+  {
+    "svc": "majlis-building",
+    "name_ar": "شركة بناء استراحات",
+    "n": 8
+  },
+  {
+    "svc": "majlis-cleaning",
+    "name_ar": "شركة تنظيف مجالس",
+    "n": 8
+  },
+  {
+    "svc": "mall-cleaning",
+    "name_ar": "شركة تنظيف محلات تجارية ومولات",
+    "n": 8
+  },
+  {
+    "svc": "marble-granite",
+    "name_ar": "شركة تركيب رخام وجرانيت",
+    "n": 8
+  },
+  {
+    "svc": "marble-polishing",
+    "name_ar": "شركة تنظيف أرضيات رخام وجلي رخام",
+    "n": 8
+  },
+  {
+    "svc": "mattress-cleaning",
+    "name_ar": "شركة تنظيف مراتب",
+    "n": 8
+  },
+  {
+    "svc": "microwave-maintenance",
+    "name_ar": "شركة صيانة ميكروويف",
+    "n": 8
+  },
+  {
+    "svc": "modern-irrigation",
+    "name_ar": "شركة تركيب شبكات ري حديثة",
+    "n": 8
+  },
+  {
+    "svc": "moquette-cleaning",
+    "name_ar": "شركة تنظيف موكيت",
+    "n": 8
+  },
+  {
+    "svc": "mosquito-fly-control",
+    "name_ar": "شركة مكافحة البعوض والذباب",
+    "n": 8
+  },
+  {
+    "svc": "natural-grass-cutting",
+    "name_ar": "شركة قص عشب طبيعي",
+    "n": 8
+  },
+  {
+    "svc": "new-building-electrical-plumbing",
+    "name_ar": "شركة تأسيس كهرباء وسباكة لمبنى جديد",
+    "n": 8
+  },
+  {
+    "svc": "new-central-ac-installation",
+    "name_ar": "شركة تركيب تكييف مركزي جديد",
+    "n": 8
+  },
+  {
+    "svc": "new-electrical-wiring",
+    "name_ar": "شركة تمديدات كهربائية جديدة",
+    "n": 8
+  },
+  {
+    "svc": "new-villa-finishing-painting",
+    "name_ar": "شركة تشطيب ودهان فلل جديدة",
+    "n": 8
+  },
+  {
+    "svc": "office-cleaning",
+    "name_ar": "شركة تنظيف مكاتب",
+    "n": 8
+  },
+  {
+    "svc": "office-painting",
+    "name_ar": "شركة دهان مكاتب وشركات",
+    "n": 8
+  },
+  {
+    "svc": "old-house-renovation",
+    "name_ar": "شركة ترميم منازل قديمة",
+    "n": 8
+  },
+  {
+    "svc": "outdoor-bathrooms",
+    "name_ar": "شركة بناء حمامات خارجية",
+    "n": 8
+  },
+  {
+    "svc": "outdoor-kitchens",
+    "name_ar": "شركة بناء مطابخ خارجية",
+    "n": 8
+  },
+  {
+    "svc": "outdoor-majlis",
+    "name_ar": "شركة بناء مجالس خارجية",
+    "n": 8
+  },
+  {
+    "svc": "outdoor-moving",
+    "name_ar": "شركة نقل أثاث خارجي",
+    "n": 8
+  },
+  {
+    "svc": "oven-maintenance",
+    "name_ar": "شركة صيانة أفران",
+    "n": 8
+  },
+  {
+    "svc": "ozone-disinfection",
+    "name_ar": "شركة التعقيم بالأوزون",
+    "n": 8
+  },
+  {
+    "svc": "paint-removal-surface-prep",
+    "name_ar": "شركة إزالة دهان قديم وتحضير أسطح",
+    "n": 8
+  },
+  {
+    "svc": "painter",
+    "name_ar": "عامل دهانات",
+    "n": 8
+  },
+  {
+    "svc": "palace-cleaning",
+    "name_ar": "شركة تنظيف ق",
+    "n": 8
+  },
+  {
+    "svc": "palm-tree-planting",
+    "name_ar": "شركة زرع نخيل وأشجار",
+    "n": 8
+  },
+  {
+    "svc": "parquet",
+    "name_ar": "شركة تركيب باركيه وأرضيات خشب",
+    "n": 8
+  },
+  {
+    "svc": "pergola-installation",
+    "name_ar": "شركة تركيب برجولات",
+    "n": 8
+  },
+  {
+    "svc": "piano-moving",
+    "name_ar": "شركة نقل بيانو",
+    "n": 8
+  },
+  {
+    "svc": "pigeon-net-installation",
+    "name_ar": "شركة تركيب شبك طارد للحمام",
+    "n": 8
+  },
+  {
+    "svc": "pigeon-spikes-installation",
+    "name_ar": "شركة تركيب مسامير طاردة للحمام",
+    "n": 8
+  },
+  {
+    "svc": "plastering",
+    "name_ar": "شركة تركيب بلاستر",
+    "n": 8
+  },
+  {
+    "svc": "plumbing-fault-repair",
+    "name_ar": "شركة كشف وإصلاح أعطال السباكة",
+    "n": 8
+  },
+  {
+    "svc": "plumbing-maintenance",
+    "name_ar": "شركة صيانة سباكة",
+    "n": 8
+  },
+  {
+    "svc": "pool-cleaning",
+    "name_ar": "شركة تنظيف مسابح",
+    "n": 8
+  },
+  {
+    "svc": "pool-maintenance",
+    "name_ar": "شركة صيانة مسابح",
+    "n": 8
+  },
+  {
+    "svc": "post-leak-repaint-maintenance",
+    "name_ar": "شركة صيانة ودهان بعد التسريبات",
+    "n": 8
+  },
+  {
+    "svc": "premium-paint-finishing",
+    "name_ar": "شركة دهان بويات عالية الجودة",
+    "n": 8
+  },
+  {
+    "svc": "ro-plants",
+    "name_ar": "شركة تركيب وصيانة محطات تحلية المياه",
+    "n": 8
+  },
+  {
+    "svc": "rodent-control",
+    "name_ar": "شركة مكافحة الفئران والقوارض",
+    "n": 8
+  },
+  {
+    "svc": "roof-garden-design",
+    "name_ar": "شركة تصميم حدائق أسطح",
+    "n": 8
+  },
+  {
+    "svc": "roof-insulation",
+    "name_ar": "شركة عزل أسطح",
+    "n": 8
+  },
+  {
+    "svc": "roof-insulation-painting",
+    "name_ar": "شركة عزل ودهان أسطح",
+    "n": 8
+  },
+  {
+    "svc": "sanitary-fixtures-installation",
+    "name_ar": "شركة تركيب أدوات صحية",
+    "n": 8
+  },
+  {
+    "svc": "sat-dish-tech",
+    "name_ar": "فني تركيب دش",
+    "n": 8
+  },
+  {
+    "svc": "satellite-tech",
+    "name_ar": "فني تركيب أقمار صناعية",
+    "n": 8
+  },
+  {
+    "svc": "school-nursery-cleaning",
+    "name_ar": "شركة تنظيف مدارس وحضانات",
+    "n": 8
+  },
+  {
+    "svc": "scorpion-control",
+    "name_ar": "شركة مكافحة العقارب",
+    "n": 8
+  },
+  {
+    "svc": "sea-freight",
+    "name_ar": "شركة شحن دولي بحري",
+    "n": 8
+  },
+  {
+    "svc": "septic-tank-emptying",
+    "name_ar": "شركة شفط بيارات",
+    "n": 8
+  },
+  {
+    "svc": "shades-sails",
+    "name_ar": "شركة تركيب مظلات وسواتر",
+    "n": 8
+  },
+  {
+    "svc": "shipping-offices",
+    "name_ar": "شركة مكاتب الشحن",
+    "n": 8
+  },
+  {
+    "svc": "snake-control",
+    "name_ar": "شركة مكافحة الأفاعي",
+    "n": 8
+  },
+  {
+    "svc": "sofa-cleaning",
+    "name_ar": "شركة تنظيف كنب",
+    "n": 8
+  },
+  {
+    "svc": "solar-ac-installation",
+    "name_ar": "شركة تركيب أجهزة تكييف طاقة شمسية",
+    "n": 8
+  },
+  {
+    "svc": "solar-systems-installation",
+    "name_ar": "شركة تركيب أنظمة طاقة شمسية",
+    "n": 8
+  },
+  {
+    "svc": "solar-water-heaters",
+    "name_ar": "شركة تركيب سخانات طاقة شمسية",
+    "n": 8
+  },
+  {
+    "svc": "soundproofing",
+    "name_ar": "شركة عزل صوتي",
+    "n": 8
+  },
+  {
+    "svc": "split-ac-installation",
+    "name_ar": "شركة تركيب مكيفات سبليت",
+    "n": 8
+  },
+  {
+    "svc": "split-ac-maintenance",
+    "name_ar": "شركة صيانة مكيفات سبليت",
+    "n": 8
+  },
+  {
+    "svc": "steam-disinfection",
+    "name_ar": "شركة التعقيم بالبخار",
+    "n": 8
+  },
+  {
+    "svc": "stone",
+    "name_ar": "شركة تركيب حجر طبيعي وصناعي",
+    "n": 8
+  },
+  {
+    "svc": "stone-facade-cleaning",
+    "name_ar": "شركة تنظيف واجهات حجرية",
+    "n": 8
+  },
+  {
+    "svc": "stone-pathway",
+    "name_ar": "شركة إنشاء ممرات حجرية",
+    "n": 8
+  },
+  {
+    "svc": "stove-maintenance",
+    "name_ar": "شركة صيانة بوتاجازات",
+    "n": 8
+  },
+  {
+    "svc": "suspended-ceiling",
+    "name_ar": "شركة تركيب أسقف مستعارة",
+    "n": 8
+  },
+  {
+    "svc": "tank-insulation",
+    "name_ar": "شركة عزل خزانات",
+    "n": 8
+  },
+  {
+    "svc": "tank-lining-maintenance",
+    "name_ar": "شركة تبطين وصيانة خزانات مياه",
+    "n": 8
+  },
+  {
+    "svc": "tank-water-chiller",
+    "name_ar": "شركة تركيب وصيانة أجهزة تبريد مياه الخزانات",
+    "n": 8
+  },
+  {
+    "svc": "termite-control",
+    "name_ar": "شركة مكافحة النمل الأبيض (الرمة)",
+    "n": 8
+  },
+  {
+    "svc": "thermal-insulation",
+    "name_ar": "شركة عزل حراري",
+    "n": 8
+  },
+  {
+    "svc": "vacuum-maintenance",
+    "name_ar": "شركة صيانة مكانس كهربائية",
+    "n": 8
+  },
+  {
+    "svc": "villa-cleaning",
+    "name_ar": "شركة تنظيف فلل",
+    "n": 8
+  },
+  {
+    "svc": "villa-inspection",
+    "name_ar": "شركة فحص فلل ومباني قبل الشراء",
+    "n": 8
+  },
+  {
+    "svc": "villa-painting",
+    "name_ar": "شركة دهان فلل",
+    "n": 8
+  },
+  {
+    "svc": "vinyl-flooring",
+    "name_ar": "شركة تركيب أرضيات فينيل",
+    "n": 8
+  },
+  {
+    "svc": "wall-foam",
+    "name_ar": "شركة تركيب فوم للجدران",
+    "n": 8
+  },
+  {
+    "svc": "wall-fountain",
+    "name_ar": "شركة تركيب نوافير جدارية",
+    "n": 8
+  },
+  {
+    "svc": "wall-grass",
+    "name_ar": "شركة تركيب عشب جداري",
+    "n": 8
+  },
+  {
+    "svc": "wallpaper",
+    "name_ar": "شركة تركيب ورق جدران",
+    "n": 8
+  },
+  {
+    "svc": "wallpaper-installation",
+    "name_ar": "شركة تركيب ورق حائط",
+    "n": 8
+  },
+  {
+    "svc": "washer-maintenance",
+    "name_ar": "شركة صيانة غسالات",
+    "n": 8
+  },
+  {
+    "svc": "water-cooler-maintenance",
+    "name_ar": "شركة صيانة مبردات مياه",
+    "n": 8
+  },
+  {
+    "svc": "water-filters",
+    "name_ar": "شركة تركيب وصيانة فلاتر مياه",
+    "n": 8
+  },
+  {
+    "svc": "water-heater-installation",
+    "name_ar": "شركة تركيب سخانات مياه",
+    "n": 8
+  },
+  {
+    "svc": "water-heater-maintenance",
+    "name_ar": "شركة صيانة سخانات",
+    "n": 8
+  },
+  {
+    "svc": "water-leak-detection",
+    "name_ar": "شركة كشف تسربات المياه",
+    "n": 8
+  },
+  {
+    "svc": "water-pipe-leak-detection",
+    "name_ar": "شركة كشف تسريبات مواسير مياه",
+    "n": 8
+  },
+  {
+    "svc": "water-pump-maintenance",
+    "name_ar": "شركة صيانة مضخات مياه",
+    "n": 8
+  },
+  {
+    "svc": "water-pumps",
+    "name_ar": "شركة تركيب وصيانة مضخات مياه وصرف صحي",
+    "n": 8
+  },
+  {
+    "svc": "water-tank-cleaning",
+    "name_ar": "شركة تنظيف خزانات مياه",
+    "n": 8
+  },
+  {
+    "svc": "waterproofing",
+    "name_ar": "شركة عزل مائي",
+    "n": 8
+  },
+  {
+    "svc": "window-ac-installation",
+    "name_ar": "شركة تركيب وحدات تكييف نافذة",
+    "n": 8
+  },
+  {
+    "svc": "windows-installation",
+    "name_ar": "شركة تركيب شبابيك",
+    "n": 8
+  },
+  {
+    "svc": "wood-doors-windows-painting",
+    "name_ar": "شركة دهان أبواب وشبابيك خشبية",
+    "n": 8
+  },
+  {
+    "svc": "wooden-arbor-installation",
+    "name_ar": "شركة تركيب عرائش خشبية",
+    "n": 8
+  }
+]
