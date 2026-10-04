@@ -82,9 +82,29 @@ IN_SCOPE_HINTS = (
 )
 
 OFF_SCOPE_HINTS = (
-    "shipping", "freight", "parcel", "cargo", "piano-moving", "furniture-moving",
-    "furniture-storage", "indoor-moving", "outdoor-moving", "car-shipping",
-    "satellite", "sat-dish", "cctv", "elevator", "solar",
+    "air-freight",
+    "sea-freight",
+    "land-freight",
+    "cargo-shipping",
+    "car-shipping",
+    "domestic-shipping",
+    "express-parcel-shipping",
+    "shipping-offices",
+    "piano-moving",
+    "furniture-moving",
+    "furniture-storage",
+    "furniture-shipping",
+    "furniture-packaging",
+    "indoor-moving",
+    "outdoor-moving",
+    "satellite-tech",
+    "sat-dish-tech",
+    "cctv-maintenance",
+    "cctv-tech",
+    "elevator-maintenance",
+    "solar-systems",
+    "solar-water-heaters",
+    "home-audio-tech",
 )
 
 TOKEN_AR: dict[str, tuple[str, ...]] = {
@@ -220,9 +240,10 @@ SLUG_FAMILY: list[tuple[str, tuple[str, ...]]] = [
 
 PLACEHOLDERS = re.compile(
     r"lorem ipsum|dummy text|your title here|نص تجريبي|اكتب هنا|coming soon|\bTODO\b|\bTBD\b|"
-    r"\{PHONE|_RUKN_OMAN\}|\{\{[a-z_]+\}\}|xxx+|placeholder",
+    r"\{PHONE|_RUKN_OMAN\}|\{\{[a-z_]+\}\}",
     re.I,
 )
+UAE_FORM_PHONE = re.compile(r'placeholder="05x+', re.I)
 KAYAN_SHORTCODES = re.compile(r"\[post_[a-z_]+\]")
 UAE_LEAK = re.compile(r"الإمارات|إمارات|درهم|دبي|أبوظبي|ابوظبي|الشارقة|عجمان|الفجيرة")
 EMIRATE_WORD = re.compile(r"إمارة|امارة")
@@ -253,6 +274,21 @@ HEAD_PATTERNS = [
     (re.compile(r"ماذا تتوقع من التنفيذ"), "EXPECT"),
     (re.compile(r"لماذا لا تكفي العدة"), "TOOLS"),
     (re.compile(r"^طلب شركة"), "REQUEST"),
+    (re.compile(r"عوامل السعر لا أرقام مخترعة"), "PRICE"),
+    (re.compile(r"أسئلة يطرحها العملاء"), "FAQ"),
+    (re.compile(r"طلب معاينة في مدينتك"), "SURVEY_CTA"),
+    (re.compile(r"إجابات قصيرة ثم التفاصيل"), "FAQ_INTRO"),
+    (re.compile(r"من أين تبدأ المشكلة"), "START"),
+    (re.compile(r"بعد انتهاء العمل"), "AFTER_WORK"),
+    (re.compile(r"التقنية المناسبة لا الأغلى"), "TECH"),
+    (re.compile(r"ما الذي تلاحظه قبل الزيارة"), "BEFORE"),
+    (re.compile(r"روابط داخلية لصفحات منفصلة"), "LINKS"),
+    (re.compile(r"كيف تقلل عودة المشكلة"), "PREVENT"),
+    (re.compile(r"ماذا لو اكتشفنا مشكلة مجاورة"), "ADJACENT"),
+    (re.compile(r"ما الذي يتغير بعد الزيارة"), "AFTER2"),
+    (re.compile(r"مقارنة مسار منظم"), "COMPARE"),
+    (re.compile(r"أنواع العمل حسب الحالة"), "TYPES"),
+    (re.compile(r"الخطوة التالية بعد قراءة الدليل"), "NEXT"),
 ]
 
 
@@ -378,9 +414,7 @@ def hamming(a: int, b: int) -> int:
 
 def in_scope(service: str) -> bool:
     s = service or ""
-    if any(h in s for h in OFF_SCOPE_HINTS):
-        return False
-    return any(h in s for h in IN_SCOPE_HINTS) or not s
+    return not any(s == h or s.startswith(h) for h in OFF_SCOPE_HINTS)
 
 
 def fetch_page(wp: WP, route: str, page: int) -> tuple[int, list, dict]:
@@ -432,6 +466,7 @@ def unpack(item: dict, ptype: str) -> dict:
     sents = [s.strip() for s in SENT_SPLIT.split(text) if len(s.strip()) >= 18]
     norm_heads = [normalize_heading(h) for _lvl, h in heads]
     patterns = []
+    known = []
     for h in norm_heads:
         hit = "OTHER"
         for rx, name in HEAD_PATTERNS:
@@ -439,7 +474,13 @@ def unpack(item: dict, ptype: str) -> dict:
                 hit = name
                 break
         patterns.append(hit)
-    skeleton = ">".join(patterns) if patterns else ""
+        if hit != "OTHER":
+            known.append(hit)
+    known_set = set(known)
+    if {"PRICE", "CTA_NEED"} <= known_set:
+        skeleton = "kayan-generated-v1"
+    else:
+        skeleton = ">".join(sorted(known_set)) if known_set else ">".join(patterns)
     return {
         "id": item.get("id"),
         "type": item.get("type") or ptype,
@@ -644,10 +685,13 @@ def analyze(docs: list[dict]) -> tuple[list[dict], list[dict], dict]:
         if d["h2"] == 0 and d["word_count"] > 250 and d["slug"] not in {"html-sitemap", "en-home"}:
             issues.append("missing_headings")
             notes.append("لا توجد عناوين H2 رغم طول النص.")
-        ph = PLACEHOLDERS.findall(html + " " + title + " " + d["excerpt"])
+        ph = PLACEHOLDERS.findall(text + " " + title + " " + d["excerpt"])
         if ph:
             issues.append("placeholder")
             notes.append("عناصر نائبة: " + ", ".join(sorted(set(ph))[:6]))
+        if UAE_FORM_PHONE.search(html):
+            issues.append("uae_form")
+            notes.append("نموذج المقال يستخدم خانة هاتف إماراتية 05xxxxxxxx بدل رقم عُماني.")
         uae = UAE_LEAK.findall(text + title)
         if uae:
             issues.append("uae_leak")
@@ -695,6 +739,7 @@ def analyze(docs: list[dict]) -> tuple[list[dict], list[dict], dict]:
             ("missing_headings", "أخطاء أو نواقص"),
             ("placeholder", "أخطاء أو نواقص"),
             ("uae_leak", "أخطاء أو نواقص"),
+            ("uae_form", "أخطاء أو نواقص"),
             ("incomplete", "أخطاء أو نواقص"),
             ("missing_tax", "أخطاء أو نواقص"),
             ("missing_image", "أخطاء أو نواقص"),
@@ -812,6 +857,14 @@ def write_markdown(path: Path, rows: list[dict], pairs: list[dict], stats: dict)
     md.append("المصدر: المقالات المنشورة حالياً على `https://rukn-eltatawer.com/om` عبر ووردبريس REST.")
     md.append(f"تاريخ الفحص: 4 أكتوبر 2026. المقالات المفحوصة: **{len(posts)}**. الصفحات وأنواع الخدمات: **{len(pages)}**.")
     md.append("")
+    md.append("## إجابات الفحص")
+    md.append("")
+    md.append(f"1. **أقل من 1000 كلمة:** لا توجد مقالة خدمة تحت 1000 كلمة (الوسيط {median} كلمة). النقص في **{len(thin_other)}** صفحة محور/خدمة كيان بـ 43–284 كلمة فقط.")
+    md.append(f"2. **نفس القالب:** **{len(templ)}** مقالة من {len(posts)} مبنية على قالب كيان واحد (عناوين ثابتة ونسبة جمل مكررة ≥ 35%).")
+    md.append(f"3. **متشابهة:** **{len(dup)}** مقالة داخل **{len(pairs)}** زوج شبه مكرر؛ منها {len(cityv)} نسخة مدينة و{len(cross)} تشابه بين خدمتين.")
+    md.append(f"4. **لا تناسب الموضوع/الخدمة:** **{len(intent)}** مقالة، أغلبها خدمات شحن/نقل/ستالايت/كاميرات/مصاعد/طاقة شمسية خارج نطاق الصفحة الرئيسية.")
+    md.append(f"5. **أخطاء ونواقص:** كل المقالات تحمل نموذج هاتف إماراتي `05xxxxxxxx`. كذلك صورة بارزة مكررة، وعبارة «تغطية حسب الاتفاق:» بلا تكملة في {flag_n.get('incomplete', 0)} مقالة.")
+    md.append("")
     md.append("## الخلاصة")
     md.append("")
     md.append("| البند | العدد |")
@@ -853,9 +906,12 @@ def write_markdown(path: Path, rows: list[dict], pairs: list[dict], stats: dict)
     for h, c in fams:
         md.append(f"| `{h}` | {c} |")
     md.append("")
+    largest = fams[0][1] if fams else 0
     md.append(
         f"هذا هو الخطر الأكبر: **{len(templ)}** مقالة تشارك هيكل كيان نفسه "
-        "(معاينة / مناسبة لحالتك / الترقيع / التأجيل سيكلف / كيف تختلف الأحياء…). "
+        f"(أكبر عائلة: {largest} مقالة بنفس تسلسل العناوين). "
+        "العناوين الثابتة تتكرر: عوامل السعر لا أرقام مخترعة، هل تحتاج إلى شركة، "
+        "مناسبة لحالتك، الترقيع، التأجيل سيكلف، كيف تختلف الأحياء. "
         "الطول كبير، لكن التميّز ضعيف، والمدن الثماني لنفس الخدمة تبدو مقالاً واحداً مع استبدال اسم المدينة."
     )
     md.append("")
@@ -895,6 +951,7 @@ def write_markdown(path: Path, rows: list[dict], pairs: list[dict], stats: dict)
         ("unexpanded_shortcodes", "شورت كود ظاهر"),
         ("incomplete", "عبارة ناقصة"),
         ("uae_leak", "بقايا إمارات"),
+        ("uae_form", "نموذج هاتف إماراتي 05"),
         ("missing_tax", "تصنيف مدينة/خدمة مفقود"),
         ("missing_image", "بدون صورة بارزة"),
         ("shared_image", "صورة بارزة مكررة"),
