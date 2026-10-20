@@ -93,6 +93,8 @@ if (wp_mkdir_p($icon_dir)) {
     if ($ok >= 12) { update_option('rukn_oman_icons_mirrored', '1'); }
 }
 update_option('rukn_oman_plugin_files', '2.0.7');
+$robots = "User-agent: *\nAllow: /\nDisallow: /om/wp-admin/\nAllow: /om/wp-admin/admin-ajax.php\nDisallow: /wp-admin/\nSitemap: https://www.rukn-eltatawer.com/om/sitemap_index.xml\n";
+@file_put_contents(ABSPATH . 'robots.txt', $robots);
 if (function_exists('do_action')) {
     do_action('litespeed_purging_all');
     do_action('litespeed_purge_all');
