@@ -637,7 +637,6 @@ final class Rukn_Oman_SEO
             $ar_url = $post->post_type === 'services'
                 ? home_url('/services/' . $post->post_name . '/')
                 : home_url('/' . sanitize_title($pair) . '/');
-            $en_url = home_url('/en/' . sanitize_title($pair) . '/');
             if ($en) {
                 $title = self::clean_title($title_meta, $post->post_title) . ' | ' . $site_en;
             } else {
