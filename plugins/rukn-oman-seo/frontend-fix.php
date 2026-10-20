@@ -405,6 +405,7 @@ final class Rukn_Oman_Frontend
         $html = preg_replace('/"priceRange"\s*:\s*"AED"/', '"priceRange":"OMR"', $html);
         $html = str_replace('data-currency="AED"', 'data-currency="OMR"', $html);
         $html = str_replace('Search Now', 'ابحث الآن', $html);
+        $html = str_replace(['01151481000', '01556644443', '%title%', 'الإعلان للإيجار'], ['', '', '', ''], $html);
         $html = str_replace('"priceRange":"OMR",}', '"priceRange":"OMR"}', $html);
         $html = preg_replace_callback(
             '#<script type="application/ld\+json">(.*?)</script>#s',

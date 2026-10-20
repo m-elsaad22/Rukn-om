@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Rukn Oman SEO
  * Description: Titles, unique meta, XML sitemap, robots.txt, English /en/ routes, Oman schema, and hreflang for rukn-eltatawer.com/om.
- * Version: 2.0.6
+ * Version: 2.0.7
  * Author: Rukn Eltatawer
  * Text Domain: rukn-oman-seo
  */
@@ -163,8 +163,7 @@ final class Rukn_Oman_SEO
         if (preg_match('#^/robots\.txt/?$#', $path) || preg_match('#/robots\.txt/?(\?|$)#', $uri)) {
             self::send_robots();
         }
-        if (preg_match('#^/(sitemap\.xml|sitemap_index\.xml|wp-sitemap\.xml)/?$#', $path)) {
-            // Post types are not ready this early; delay to init.
+        if (preg_match('#^/(sitemap\.xml|sitemap_index\.xml|wp-sitemap\.xml|sitemap-posts\.xml|sitemap-core\.xml)/?$#', $path)) {
             add_action('init', [__CLASS__, 'send_sitemap'], 99);
         }
     }
@@ -182,7 +181,7 @@ final class Rukn_Oman_SEO
         if (preg_match('#^/robots\.txt/?$#', $path)) {
             self::send_robots();
         }
-        if (preg_match('#^/(sitemap\.xml|sitemap_index\.xml|wp-sitemap\.xml)/?$#', $path)) {
+        if (preg_match('#^/(sitemap\.xml|sitemap_index\.xml|wp-sitemap\.xml|sitemap-posts\.xml|sitemap-core\.xml)/?$#', $path)) {
             self::send_sitemap();
         }
         if (is_page('en-home') && !self::is_english_request()) {
@@ -302,16 +301,26 @@ final class Rukn_Oman_SEO
         echo "Disallow: /om/wp-admin/\n";
         echo "Allow: /om/wp-admin/admin-ajax.php\n";
         echo "Disallow: /wp-admin/\n";
-        echo "Sitemap: {$home}sitemap.xml\n";
+        echo "Sitemap: {$home}sitemap_index.xml\n";
         exit;
     }
 
-    public static function sitemap_urls()
+    public static function clean_title($raw, $fallback)
     {
-        $urls = [];
-        $urls[] = [home_url('/'), '1.0', 'daily', gmdate('c')];
-        $urls[] = [home_url('/en/'), '0.9', 'daily', gmdate('c')];
+        $t = is_string($raw) ? trim(wp_strip_all_tags(html_entity_decode($raw, ENT_QUOTES, 'UTF-8'))) : '';
+        if ($t === '' || strpbrk($t, '%{}') !== false || preg_match('/01151481000|01556644443|للإيجار|للإعلان|ad for rent/i', $t)) {
+            return $fallback;
+        }
+        return $t;
+    }
 
+    public static function sitemap_core_urls()
+    {
+        $day = gmdate('Y-m-d') . 'T00:00:00+00:00';
+        $urls = [
+            [home_url('/'), '1.0', 'daily', $day],
+            [home_url('/en/'), '0.8', 'weekly', $day],
+        ];
         foreach (['cities', 'service_categories'] as $tax) {
             $terms = get_terms(['taxonomy' => $tax, 'hide_empty' => false, 'number' => 50]);
             if (is_wp_error($terms) || !$terms) {
@@ -320,11 +329,10 @@ final class Rukn_Oman_SEO
             foreach ($terms as $term) {
                 $link = get_term_link($term);
                 if (!is_wp_error($link)) {
-                    $urls[] = [$link, '0.7', 'weekly', gmdate('c')];
+                    $urls[] = [$link, '0.7', 'weekly', $day];
                 }
             }
         }
-
         $svcs = get_posts([
             'post_type' => 'services',
             'post_status' => 'publish',
@@ -333,45 +341,48 @@ final class Rukn_Oman_SEO
         foreach ($svcs as $post) {
             $urls[] = [home_url('/services/' . $post->post_name . '/'), '0.85', 'weekly', get_post_modified_time('c', true, $post)];
         }
+        $pages = get_posts([
+            'post_type' => 'page',
+            'post_status' => 'publish',
+            'numberposts' => 50,
+        ]);
+        foreach ($pages as $post) {
+            if (in_array($post->post_name, ['sample-page', 'hello-world', 'en-home'], true)) {
+                continue;
+            }
+            $urls[] = [get_permalink($post), '0.7', 'weekly', get_post_modified_time('c', true, $post)];
+        }
+        return $urls;
+    }
 
+    public static function sitemap_post_urls()
+    {
+        $urls = [];
         $posts = get_posts([
-            'post_type' => ['post', 'page'],
+            'post_type' => 'post',
             'post_status' => 'publish',
             'numberposts' => 2500,
             'orderby' => 'modified',
             'order' => 'DESC',
         ]);
         foreach ($posts as $post) {
-            if (in_array($post->post_name, ['sample-page', 'hello-world', 'en-home'], true)) {
-                continue;
-            }
             $lang = get_post_meta($post->ID, self::LANG_META, true);
             if ($lang === 'en') {
                 continue;
             }
-            if ($post->post_type === 'services') {
-                $loc = home_url('/services/' . $post->post_name . '/');
-            } else {
-                $loc = get_permalink($post);
-            }
-            $prio = $post->post_type === 'post' ? '0.8' : '0.7';
-            $urls[] = [$loc, $prio, 'weekly', get_post_modified_time('c', true, $post)];
-            if (get_post_meta($post->ID, self::EN_TITLE, true) && $post->post_type === 'post') {
-                $pair = get_post_meta($post->ID, self::PAIR_META, true) ?: $post->post_name;
-                $urls[] = [home_url('/en/' . sanitize_title($pair) . '/'), '0.75', 'weekly', get_post_modified_time('c', true, $post)];
-            }
+            $urls[] = [get_permalink($post), '0.8', 'weekly', get_post_modified_time('c', true, $post)];
         }
         return $urls;
     }
 
-    public static function sitemap_xml()
+    public static function urlset_xml($rows)
     {
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
         $seen = [];
-        foreach (self::sitemap_urls() as $row) {
+        foreach ($rows as $row) {
             $loc = esc_url($row[0]);
-            if (isset($seen[$loc])) {
+            if ($loc === '' || isset($seen[$loc])) {
                 continue;
             }
             $seen[$loc] = true;
@@ -388,11 +399,46 @@ final class Rukn_Oman_SEO
         return $xml;
     }
 
+    public static function sitemap_index_xml()
+    {
+        $now = gmdate('Y-m-d') . 'T00:00:00+00:00';
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+        $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        foreach (['sitemap-core.xml', 'sitemap-posts.xml'] as $name) {
+            $xml .= "  <sitemap>\n";
+            $xml .= '    <loc>' . esc_url(home_url('/' . $name)) . "</loc>\n";
+            $xml .= '    <lastmod>' . $now . "</lastmod>\n";
+            $xml .= "  </sitemap>\n";
+        }
+        $xml .= '</sitemapindex>';
+        return $xml;
+    }
+
+    public static function sitemap_xml()
+    {
+        return self::urlset_xml(array_merge(self::sitemap_core_urls(), self::sitemap_post_urls()));
+    }
+
     public static function send_sitemap()
     {
+        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        if (preg_match('#\.xml/#', $uri)) {
+            $path = preg_replace('#\.xml/.*$#', '.xml', (string) parse_url($uri, PHP_URL_PATH));
+            wp_safe_redirect(home_url(preg_replace('#^/om(?=/|$)#', '', $path)), 301);
+            exit;
+        }
+        $path = rtrim(self::request_path(), '/');
         nocache_headers();
         header('Content-Type: application/xml; charset=UTF-8');
-        echo self::sitemap_xml();
+        if (preg_match('#sitemap_index\.xml|wp-sitemap\.xml#', $path)) {
+            echo self::sitemap_index_xml();
+        } elseif (preg_match('#sitemap-core\.xml#', $path)) {
+            echo self::urlset_xml(self::sitemap_core_urls());
+        } elseif (preg_match('#sitemap-posts\.xml#', $path)) {
+            echo self::urlset_xml(self::sitemap_post_urls());
+        } else {
+            echo self::sitemap_xml();
+        }
         exit;
     }
 
@@ -401,7 +447,7 @@ final class Rukn_Oman_SEO
         if (!defined('ABSPATH')) {
             return;
         }
-        $robots = "User-agent: *\nAllow: /\nDisallow: /om/wp-admin/\nAllow: /om/wp-admin/admin-ajax.php\nDisallow: /wp-admin/\nSitemap: " . home_url('/sitemap.xml') . "\n";
+        $robots = "User-agent: *\nAllow: /\nDisallow: /om/wp-admin/\nAllow: /om/wp-admin/admin-ajax.php\nDisallow: /wp-admin/\nSitemap: " . home_url('/sitemap_index.xml') . "\n";
         @file_put_contents(ABSPATH . 'robots.txt', $robots);
         if (is_file(ABSPATH . 'sitemap.xml')) {
             @unlink(ABSPATH . 'sitemap.xml');
@@ -532,7 +578,7 @@ final class Rukn_Oman_SEO
         if ($en && preg_match('#^/en/?$#', rtrim(self::request_path(), '/') . '/')) {
             $page = self::english_home_post();
             return [
-                'title' => $page ? (get_post_meta($page->ID, 'rank_math_title', true) ?: $home_en) : $home_en,
+                'title' => $page ? self::clean_title(get_post_meta($page->ID, 'rank_math_title', true), $home_en) : $home_en,
                 'desc' => $page ? (get_post_meta($page->ID, 'rank_math_description', true) ?: $desc_en) : $desc_en,
                 'canonical' => home_url('/en/'),
                 'lang' => 'en-OM',
@@ -582,6 +628,7 @@ final class Rukn_Oman_SEO
                 }
             } else {
                 $desc_meta = get_post_meta($post->ID, 'rank_math_description', true);
+                $desc_meta = self::clean_title($desc_meta, '');
             }
             $excerpt = $en
                 ? wp_strip_all_tags(get_post_meta($post->ID, self::EN_EXCERPT, true) ?: ($desc_meta ?: ''))
@@ -591,15 +638,17 @@ final class Rukn_Oman_SEO
                 ? home_url('/services/' . $post->post_name . '/')
                 : home_url('/' . sanitize_title($pair) . '/');
             $en_url = home_url('/en/' . sanitize_title($pair) . '/');
-            $canonical = $en ? $en_url : $ar_url;
             if ($en) {
-                $title = ($title_meta ?: $post->post_title) . ' | ' . $site_en;
+                $title = self::clean_title($title_meta, $post->post_title) . ' | ' . $site_en;
             } else {
-                $title = $title_meta ?: ($post->post_title . ' | ' . $site_ar);
+                $title = self::clean_title($title_meta, $post->post_title . ' | ' . $site_ar);
             }
             $hreflang = [['ar-OM', $ar_url], ['x-default', $ar_url]];
-            if (get_post_meta($post->ID, self::EN_TITLE, true) && $post->post_type === 'post') {
-                $hreflang = [['ar-OM', $ar_url], ['en-OM', $en_url], ['x-default', $ar_url]];
+            $robots = 'index, follow, max-image-preview:large';
+            $canonical = $ar_url;
+            if ($en && $post->post_type === 'post') {
+                $robots = 'noindex, follow';
+                $canonical = $ar_url;
             }
             return [
                 'title' => $title,
@@ -607,6 +656,7 @@ final class Rukn_Oman_SEO
                 'canonical' => $canonical,
                 'lang' => $en ? 'en-OM' : 'ar-OM',
                 'hreflang' => $hreflang,
+                'robots' => $robots,
             ];
         }
 
@@ -664,8 +714,9 @@ final class Rukn_Oman_SEO
 
         $extra = "\n<meta name=\"description\" content=\"{$desc}\" />\n";
         $extra .= '<link rel="canonical" href="' . $canon . "\" />\n";
-        $extra .= '<link rel="sitemap" type="application/xml" href="' . esc_url(home_url('/sitemap.xml')) . "\" />\n";
-        $extra .= '<meta name="robots" content="index, follow, max-image-preview:large" />' . "\n";
+        $robots = esc_attr($seo['robots'] ?? 'index, follow, max-image-preview:large');
+        $extra .= '<link rel="sitemap" type="application/xml" href="' . esc_url(home_url('/sitemap_index.xml')) . "\" />\n";
+        $extra .= '<meta name="robots" content="' . $robots . '" />' . "\n";
         $extra .= '<meta property="og:type" content="' . (is_singular() ? 'article' : 'website') . "\" />\n";
         $extra .= '<meta property="og:site_name" content="' . ($seo['lang'] === 'en-OM' ? 'Rukn Eltatawer Oman' : 'ركن التطور عُمان') . "\" />\n";
         $extra .= '<meta property="og:title" content="' . $title . "\" />\n";
@@ -691,6 +742,7 @@ final class Rukn_Oman_SEO
             $html = preg_replace('/<h1(\b[^>]*)>.*?<\/h1>/is', '<h1$1>' . esc_html($en_h1) . '</h1>', $html, 1);
         }
 
+        $html = str_replace(['01151481000', '01556644443', '%title%', 'الإعلان للإيجار'], ['', '', '', ''], $html);
         $html = str_replace('اختر الإمارة', 'اختر المدينة', $html);
         $html = str_replace('خريطة الإمارات', 'خريطة مدن عُمان', $html);
         $html = str_replace('الإمارات العربية المتحدة', 'سلطنة عُمان', $html);

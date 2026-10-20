@@ -92,7 +92,7 @@ if (wp_mkdir_p($icon_dir)) {
     }
     if ($ok >= 12) { update_option('rukn_oman_icons_mirrored', '1'); }
 }
-update_option('rukn_oman_plugin_files', '2.0.6');
+update_option('rukn_oman_plugin_files', '2.0.7');
 if (function_exists('do_action')) {
     do_action('litespeed_purging_all');
     do_action('litespeed_purge_all');
@@ -100,7 +100,7 @@ if (function_exists('do_action')) {
 """
     payload = {
         "name": "Rukn Oman plugin writer",
-        "desc": "Writes rukn-oman-seo plugin files (header 2.0.6).",
+        "desc": "Writes rukn-oman-seo plugin files (gsc 2.0.7).",
         "code": php.strip(),
         "scope": "global",
         "active": True,
@@ -129,7 +129,7 @@ if (function_exists('do_action')) {
             print("hit home", resp.status, flush=True)
     except Exception as e:
         print("hit home err", e, flush=True)
-    print("deployed 2.0.6", flush=True)
+    print("deployed 2.0.7", flush=True)
     return 0
 
 
